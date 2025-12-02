@@ -12,6 +12,197 @@ It is needed when you want to distinguish different requests.
 In version 2.0 it is required, while in version 1.0 it does not exist.
 
 
+### getpoll
+
+Return the list of votings.
+
+result:
+
+| name      | type       | description                       |
+| --------- | ---------- | --------------------------------- |
+| ids       | []uint256   | the id list of voting             |
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method":"getpoll",
+  "params": [],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "ids": [
+      "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405", 
+      "c0433b918f500392869aa14cf7a909430fd94502b5c9f05421c9da7519bd6a65"
+      ]
+  },
+  "error": null
+}
+```
+
+### getVotingInfo
+
+Return the voting info.
+
+request:
+
+| name      | type       | description                       |
+| --------- | ---------- | --------------------------------- |
+| ids       | []uint256  | the id list of voting             |
+
+result:
+
+| name      | type       | description                       |
+| --------- | ---------- | --------------------------------- |
+| id        | uint256    | the id of voting                  |
+| status    | string     | the status of voting              |
+| description | string   | the description of voting         |
+| startTime | uint64     | the start time of voting          |
+| endTime   | uint64     | the end time of voting            |
+| options   | []string   | the options of voting             |
+
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method":"getvotinginfo",
+  "params": [
+    "ids": [
+      "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405",
+      "c0433b918f500392869aa14cf7a909430fd94502b5c9f05421c9da7519bd6a65"
+    ]
+  ],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": [
+    {
+    "id": "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405",
+    "status": "finished",
+    "description": "",
+    "startTime": 1767143580,
+    "endTime": 1767153580,
+    "options": [
+      "option1",
+      "option2"
+    ]
+    },
+    {
+    "id": "c0433b918f500392869aa14cf7a909430fd94502b5c9f05421c9da7519bd6a65",
+    "status": "voting",
+    "description": "",
+    "startTime": 1767143580,
+    "endTime": 1767153580,
+    "options": [
+      "option1",
+      "option2"
+    ]
+    }
+  ]
+  "error": null
+}
+```
+
+### getVotingDetails
+
+### getvotingdetails
+
+Return the details of voting. include the voter and the voting amount.
+
+request:
+
+| name      | type    | description                       |
+| --------- | ------- | --------------------------------- |
+| id        | uint256 | the id of voting target           |
+
+
+result:
+
+| name      | type   | description                       |
+| --------- | ------ | --------------------------------- |
+| status    | string | the status of voting              |
+| description | string | the description of voting       |
+| startTime | int64 | the start time of voting           |
+| endTime   | int64 | the end time of voting             |
+| options   | []string | the options of voting           |
+| votes    | []vote | the votes of voting                |
+
+vote:
+
+| name      | type   | description                       |
+| --------- | ------ | --------------------------------- |
+| voter     | string | the address of voter              |
+| amount    | string | the amount of voting              |
+| option    | uint32 | the option of voting              |
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method":"getvotingdetails",
+  "params": [
+    "id": "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405"
+  ],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "finished",
+    "description": "",
+    "startTime": 1767143580,
+    "endTime": 1767153580,
+    "options": [
+      "option1",
+      "option2"
+    ],
+    "votes": [
+      {
+        "voter": "",
+        "amount": "1.23"
+        "option": 1
+      },
+      {
+        "voter": "",
+        "amount": "4.56"
+        "option": 2
+      }
+    ]
+  },
+  "error": null
+}
+```
 
 ### getbestblockhash
 

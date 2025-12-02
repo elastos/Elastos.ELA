@@ -1832,6 +1832,7 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 		s.processDeposit(tx, height)
 	}
 	s.processCancelVotes(tx, height)
+	s.processCancelMemoVotes(tx, height)
 }
 
 func GetOwnerKeyCodeHash(ownerKey []byte) (ownKeyProgramHash *common.Uint160, err error) {
@@ -1994,9 +1995,211 @@ func (s *State) activateProducer(p *payload.ActivateProducer, height uint32) {
 	})
 }
 
+type InitateVoting struct {
+	Init        string
+	ID          common.Uint256
+	EndTime     uint64
+	Description string
+	OptionCount uint32
+	Options     []string
+	Url         string
+}
+
+func (v *InitateVoting) Serialize(w io.Writer) error {
+	err := common.WriteVarString(w, v.Init)
+	if err != nil {
+		return err
+	}
+	err = v.ID.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = common.WriteUint64(w, v.EndTime)
+	if err != nil {
+		return err
+	}
+	err = common.WriteVarString(w, v.Description)
+	if err != nil {
+		return err
+	}
+	err = common.WriteUint32(w, v.OptionCount)
+	if err != nil {
+		return err
+	}
+	for _, option := range v.Options {
+		err = common.WriteVarString(w, option)
+		if err != nil {
+			return err
+		}
+	}
+	err = common.WriteVarString(w, v.Url)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *InitateVoting) Deserialize(r io.Reader) error {
+	var err error
+	v.Init, err = common.ReadVarString(r)
+	if err != nil {
+		return err
+	}
+	err = v.ID.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	v.EndTime, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	v.Description, err = common.ReadVarString(r)
+	if err != nil {
+		return err
+	}
+	v.OptionCount, err = common.ReadUint32(r)
+	if err != nil {
+		return err
+	}
+	for i := uint32(0); i < v.OptionCount; i++ {
+		option, err := common.ReadVarString(r)
+		if err != nil {
+			return err
+		}
+		v.Options = append(v.Options, option)
+	}
+	v.Url, err = common.ReadVarString(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type UserVoting struct {
+	ID          common.Uint256
+	OptionIndex uint32
+	Amount      string
+}
+
+func (v *UserVoting) Serialize(w io.Writer) error {
+	err := v.ID.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = common.WriteUint32(w, v.OptionIndex)
+	if err != nil {
+		return err
+	}
+	err = common.WriteVarString(w, v.Amount)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *UserVoting) Deserialize(r io.Reader) error {
+	err := v.ID.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	v.OptionIndex, err = common.ReadUint32(r)
+	if err != nil {
+		return err
+	}
+	v.Amount, err = common.ReadVarString(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+const InitateVotingFlag = "initvote"
+const UserVotingFlag = "uservote"
+
 // processVotes takes a transaction, if the transaction including any vote
 // inputs or outputs, validate and update producers votes.
 func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
+
+	for _, att := range tx.Attributes() {
+		if att.Usage == common2.Memo {
+			// parse memo, if it is a vote from EE, record it for getpoll api
+			data := att.Data
+			if len(data) < 1 {
+				continue
+			}
+			flag := string(data[0:8])
+			switch flag {
+			case InitateVotingFlag:
+				var initateVoting InitateVoting
+				err := initateVoting.Deserialize(bytes.NewReader(data[1:]))
+				if err != nil {
+					log.Warn("[memo vote] deserialize initateVoting failed")
+					continue
+				}
+				// check if initateVoting.ID is already in s.InitateVotings
+				if _, ok := s.InitateVotings[initateVoting.ID]; ok {
+					log.Warn("[memo vote] initateVoting.ID is already in s.InitateVotings")
+					continue
+				}
+
+				s.History.Append(height, func() {
+					s.InitateVotings[initateVoting.ID] = initateVoting
+				}, func() {
+					delete(s.InitateVotings, initateVoting.ID)
+				})
+			case UserVotingFlag:
+				var userVoting UserVoting
+				err := userVoting.Deserialize(bytes.NewReader(data[1:]))
+				if err != nil {
+					log.Warn("[memo vote] deserialize userVoting failed")
+					continue
+				}
+				// check if userVoting.ID is already in s.UserVotings
+				if _, ok := s.UserVotings[userVoting.ID]; !ok {
+					log.Warn("[memo vote] userVoting.ID is not in s.UserVotings")
+					continue
+				}
+				// check if tx output exist
+				if len(tx.Outputs()) < 1 {
+					log.Warn("[memo vote] tx output count is less than 1")
+					continue
+				}
+				// check if userVoting.OptionIndex is valid
+				if userVoting.OptionIndex >= s.InitateVotings[userVoting.ID].OptionCount {
+					log.Warn("[memo vote] userVoting.OptionIndex is invalid")
+					continue
+				}
+				// check if userVoting.Amount is valid
+				if userVoting.Amount == "" {
+					log.Warn("[memo vote] userVoting.Amount is empty")
+					continue
+				}
+				// check if userVoting.Amount is valid
+				voteAmount, err := common.StringToFixed64(userVoting.Amount)
+				if err != nil {
+					log.Warn("[memo vote] voteAmount is invalid")
+					continue
+				}
+				if *voteAmount != tx.Outputs()[0].Value {
+					log.Warn("[memo vote] voteAmount != tx.Outputs()[0].Value")
+					continue
+				}
+				op := common2.NewOutPoint(tx.Hash(), 0)
+				s.History.Append(height, func() {
+					if _, ok := s.UserVotings[userVoting.ID]; !ok {
+						s.UserVotings[userVoting.ID] = make(map[string]UserVoting)
+					}
+					s.UserVotings[userVoting.ID][op.ReferKey()] = userVoting
+					log.Info("[memo vote] userVoting.ID: %s, optionIndex: %d, amount: %s", userVoting.ID, userVoting.OptionIndex, userVoting.Amount)
+					s.MemoVotes[op.ReferKey()] = struct{}{}
+				}, func() {
+					delete(s.UserVotings[userVoting.ID], op.ReferKey())
+					delete(s.MemoVotes, op.ReferKey())
+				})
+			}
+		}
+	}
+
 	if tx.Version() >= common2.TxVersion09 {
 		// Votes to producers.
 		for i, output := range tx.Outputs() {
@@ -2303,6 +2506,17 @@ func (s *State) addProducerAssert(output *common2.Output, height uint32) bool {
 }
 
 // processCancelVotes takes a transaction output with vote payload.
+func (s *State) processCancelMemoVotes(tx interfaces.Transaction, height uint32) {
+	for _, input := range tx.Inputs() {
+		referKey := input.ReferKey()
+		_, ok := s.MemoVotes[referKey]
+		if ok {
+			s.processMemoVoteCancel(referKey, height)
+		}
+	}
+}
+
+// processCancelVotes takes a transaction output with vote payload.
 func (s *State) processCancelVotes(tx interfaces.Transaction, height uint32) {
 	var exist bool
 	for _, input := range tx.Inputs() {
@@ -2365,6 +2579,21 @@ func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 					countByVote(producer, v)
 				}
 			}
+		}
+	}
+}
+
+// processVoteCancel takes a previous vote output and decrease producers votes.
+func (s *State) processMemoVoteCancel(referKey string, height uint32) {
+	for k, v := range s.UserVotings {
+		if vote, ok := v[referKey]; ok {
+			s.History.Append(height, func() {
+				delete(s.UserVotings[k], referKey)
+				delete(s.MemoVotes, referKey)
+			}, func() {
+				s.UserVotings[k][referKey] = vote
+				s.MemoVotes[referKey] = struct{}{}
+			})
 		}
 	}
 }

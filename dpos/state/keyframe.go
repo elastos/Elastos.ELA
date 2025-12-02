@@ -34,6 +34,10 @@ func (consesus ConsesusAlgorithm) String() string {
 
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
+	InitateVotings map[common.Uint256]InitateVoting         // ID -> InitateVoting
+	UserVotings    map[common.Uint256]map[string]UserVoting // ID -> ReferKey -> UserVoting
+	MemoVotes      map[string]struct{}
+
 	NodeOwnerKeys            map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode as value)
 	CurrentCRNodeOwnerKeys   map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode as value)
 	NextCRNodeOwnerKeys      map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode  value)
@@ -104,6 +108,9 @@ type RewardData struct {
 // SnapshotByHeight takes a SnapshotByHeight of current state and returns the copy.
 func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state := StateKeyFrame{
+		InitateVotings:           make(map[common.Uint256]InitateVoting),
+		UserVotings:              make(map[common.Uint256]map[string]UserVoting),
+		MemoVotes:                make(map[string]struct{}),
 		NodeOwnerKeys:            make(map[string]string),
 		CurrentCRNodeOwnerKeys:   make(map[string]string),
 		NextCRNodeOwnerKeys:      make(map[string]string),
@@ -134,6 +141,9 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		PreBlockArbiters:         make(map[string]struct{}),
 		ProducerDepositMap:       make(map[common.Uint168]struct{}),
 	}
+	state.InitateVotings = copyInitateVotingMap(s.InitateVotings)
+	state.UserVotings = copyUserVotingMap(s.UserVotings)
+	state.MemoVotes = copyStringSet(s.MemoVotes)
 	state.NodeOwnerKeys = copyStringMap(s.NodeOwnerKeys)
 	state.CurrentCRNodeOwnerKeys = copyStringMap(s.CurrentCRNodeOwnerKeys)
 	state.NextCRNodeOwnerKeys = copyStringMap(s.NextCRNodeOwnerKeys)
@@ -173,6 +183,18 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 }
 
 func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
+
+	if err = s.SerializeInitateVotings(s.InitateVotings, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeUserVotings(s.UserVotings, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeStringSet(s.MemoVotes, w); err != nil {
+		return
+	}
 
 	if err = s.SerializeStringMap(s.NodeOwnerKeys, w); err != nil {
 		return
@@ -292,6 +314,19 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 }
 
 func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
+
+	if s.InitateVotings, err = s.DeserializeInitateVotings(r); err != nil {
+		return
+	}
+
+	if s.UserVotings, err = s.DeserializeUserVotings(r); err != nil {
+		return
+	}
+
+	if s.MemoVotes, err = s.DeserializeStringSet(r); err != nil {
+		return
+	}
+
 	if s.NodeOwnerKeys, err = s.DeserializeStringMap(r); err != nil {
 		return
 	}
@@ -811,6 +846,102 @@ func (s *StateKeyFrame) DeserializeDIDSet(
 	return
 }
 
+func (s *StateKeyFrame) SerializeInitateVotings(vmap map[common.Uint256]InitateVoting,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeInitateVotings(
+	r io.Reader) (vmap map[common.Uint256]InitateVoting, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint256]InitateVoting)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint256
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		v := InitateVoting{}
+		if err = v.Deserialize(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
+	return
+}
+
+func (s *StateKeyFrame) SerializeUserVotings(vmap map[common.Uint256]map[string]UserVoting,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = common.WriteVarUint(w, uint64(len(v))); err != nil {
+			return
+		}
+		for k2, v2 := range v {
+			if err = common.WriteVarString(w, k2); err != nil {
+				return
+			}
+			if err = v2.Serialize(w); err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeUserVotings(
+	r io.Reader) (vmap map[common.Uint256]map[string]UserVoting, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint256]map[string]UserVoting)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint256
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v map[string]UserVoting
+		var vCount uint64
+		vCount, err = common.ReadVarUint(r, 0)
+		if err != nil {
+			return
+		}
+		v = make(map[string]UserVoting)
+		for ii := uint64(0); ii < vCount; ii++ {
+			var k2 string
+			if k2, err = common.ReadVarString(r); err != nil {
+				return
+			}
+			var uv UserVoting
+			if err = uv.Deserialize(r); err != nil {
+				return
+			}
+			v[k2] = uv
+		}
+		vmap[k] = v
+	}
+	return
+}
+
 func (s *StateKeyFrame) SerializeStringMap(smap map[string]string,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(smap))); err != nil {
@@ -902,6 +1033,9 @@ func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168)
 func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
+		InitateVotings:            make(map[common.Uint256]InitateVoting),
+		UserVotings:               make(map[common.Uint256]map[string]UserVoting),
+		MemoVotes:                 make(map[string]struct{}),
 		NodeOwnerKeys:             make(map[string]string),
 		CurrentCRNodeOwnerKeys:    make(map[string]string),
 		NextCRNodeOwnerKeys:       make(map[string]string),
@@ -994,6 +1128,29 @@ func copyProducerMap(src map[string]*Producer) (dst map[string]*Producer) {
 	for k, v := range src {
 		p := *v
 		dst[k] = &p
+	}
+	return
+}
+
+// copyInitateVotingMap copy the src map's key, value pairs into dst map.
+func copyInitateVotingMap(src map[common.Uint256]InitateVoting) (dst map[common.Uint256]InitateVoting) {
+	dst = map[common.Uint256]InitateVoting{}
+	for k, v := range src {
+		p := v
+		dst[k] = p
+	}
+	return
+}
+
+// copyUserVotingMap copy the src map's key, value pairs into dst map.
+func copyUserVotingMap(src map[common.Uint256]map[string]UserVoting) (dst map[common.Uint256]map[string]UserVoting) {
+	dst = map[common.Uint256]map[string]UserVoting{}
+	for k, v := range src {
+		p := map[string]UserVoting{}
+		for k2, v2 := range v {
+			p[k2] = v2
+		}
+		dst[k] = p
 	}
 	return
 }

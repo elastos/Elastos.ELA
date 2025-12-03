@@ -2110,6 +2110,8 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 const InitateVotingFlag = "initvote"
 const UserVotingFlag = "uservote"
 
+const MinVotingMemoSize = 45
+
 // processVotes takes a transaction, if the transaction including any vote
 // inputs or outputs, validate and update producers votes.
 func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height uint32) {
@@ -2118,7 +2120,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 		if att.Usage == common2.Memo {
 			// parse memo, if it is a vote from EE, record it for getpoll api
 			data := att.Data
-			if len(data) < 1 {
+			if len(data) < MinVotingMemoSize {
 				continue
 			}
 			flag := string(data[0:8])

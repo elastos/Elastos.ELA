@@ -2032,6 +2032,18 @@ type InitateVoting struct {
 }
 
 func (v *InitateVoting) Serialize(w io.Writer) error {
+	err := v.SerializeWithOutStartTime(w)
+	if err != nil {
+		return err
+	}
+	err = common.WriteUint64(w, v.StartTime)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *InitateVoting) SerializeWithOutStartTime(w io.Writer) error {
 	err := v.ID.Serialize(w)
 	if err != nil {
 		return err
@@ -2062,6 +2074,19 @@ func (v *InitateVoting) Serialize(w io.Writer) error {
 }
 
 func (v *InitateVoting) Deserialize(r io.Reader) error {
+	err := v.DeserializeWithoutStartTime(r)
+	if err != nil {
+		return err
+	}
+	v.StartTime, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *InitateVoting) DeserializeWithoutStartTime(r io.Reader) error {
+
 	var err error
 	err = v.ID.Deserialize(r)
 	if err != nil {
@@ -2134,6 +2159,12 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 const InitateVotingFlag = "pollinit"
 const UserVotingFlag = "pollvote"
 
+// VoteFlag is converted from hex string "564f5445" to string "VOTE"
+var VoteFlag = func() string {
+	bytes, _ := hex.DecodeString("564f5445")
+	return string(bytes)
+}()
+
 const MinVotingMemoSize = 45
 
 // processVotes takes a transaction, if the transaction including any vote
@@ -2147,11 +2178,11 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 			if len(data) < MinVotingMemoSize {
 				continue
 			}
-			flag := string(data[0:8])
+			flag := hex.EncodeToString(data[0:8])
 			switch flag {
 			case InitateVotingFlag:
 				var initateVoting InitateVoting
-				err := initateVoting.Deserialize(bytes.NewReader(data[8:]))
+				err := initateVoting.DeserializeWithoutStartTime(bytes.NewReader(data[8:]))
 				if err != nil {
 					log.Warn("[memo vote] deserialize initateVoting failed")
 					continue
@@ -2216,7 +2247,10 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					delete(s.UserVotings[userVoting.ID], op.ReferKey())
 					delete(s.MemoVotes, op.ReferKey())
 				})
+			default:
+				log.Warn("[memo vote] unknown flag, memo:", hex.EncodeToString(data))
 			}
+			break
 		}
 	}
 

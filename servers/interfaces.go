@@ -3814,7 +3814,7 @@ func GetPolls(param Params) map[string]interface{} {
 	type Poll struct {
 		IDs []string `json:"ids"`
 	}
-	votings := Chain.GetState().InitateVotings
+	votings := Chain.GetState().GetAllInitateVotings()
 	ids := make([]string, 0)
 	for _, v := range votings {
 		ids = append(ids, v.ID.String())
@@ -3836,7 +3836,7 @@ func GetPollInfo(param Params) map[string]interface{} {
 		EndTime     uint64   `json:"endTime"`
 		Choices     []string `json:"choices"`
 	}
-	votings := Chain.GetState().InitateVotings
+	votings := Chain.GetState().GetAllInitateVotings()
 	idsMap := make(map[string]struct{})
 	for _, id := range ids {
 		idsMap[id] = struct{}{}
@@ -3874,7 +3874,8 @@ func GetPollDetails(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid id")
 	}
-	voting, ok := Chain.GetState().InitateVotings[*id]
+	initateVotings := Chain.GetState().GetAllInitateVotings()
+	voting, ok := initateVotings[*id]
 	if !ok {
 		return ResponsePack(InvalidParams, "id is not exist")
 	}
@@ -3901,7 +3902,7 @@ func GetPollDetails(param Params) map[string]interface{} {
 	}
 
 	votes := make([]VoteInfo, 0)
-	userVotes := Chain.GetState().UserVotings
+	userVotes := Chain.GetState().GetAllUserVotings()
 	for k, v := range userVotes[*id] {
 		votes = append(votes, VoteInfo{
 			Voter:  k,

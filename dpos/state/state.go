@@ -802,6 +802,30 @@ func (s *State) GetAllProducers() []Producer {
 	return s.getAllProducersByCopy()
 }
 
+func (s *State) GetAllInitateVotings() map[common.Uint256]InitateVoting {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	// copy map and return
+	copyMap := make(map[common.Uint256]InitateVoting)
+	for k, v := range s.InitateVotings {
+		p := v
+		copyMap[k] = p
+	}
+	return copyMap
+}
+
+func (s *State) GetAllUserVotings() map[common.Uint256]map[string]UserVoting {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	copyMap := make(map[common.Uint256]map[string]UserVoting)
+	for k, v := range s.UserVotings {
+		p := v
+		copyMap[k] = p
+	}
+	return copyMap
+}
+
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -2107,8 +2131,8 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 	return nil
 }
 
-const InitateVotingFlag = "initvote"
-const UserVotingFlag = "uservote"
+const InitateVotingFlag = "pollinit"
+const UserVotingFlag = "pollvote"
 
 const MinVotingMemoSize = 45
 

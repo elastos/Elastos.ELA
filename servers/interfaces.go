@@ -3810,7 +3810,7 @@ func VoteStatus(param Params) map[string]interface{} {
 	})
 }
 
-func GetPoll(param Params) map[string]interface{} {
+func GetPolls(param Params) map[string]interface{} {
 	type Poll struct {
 		IDs []string `json:"ids"`
 	}
@@ -3822,7 +3822,7 @@ func GetPoll(param Params) map[string]interface{} {
 	return ResponsePack(Success, &Poll{IDs: ids})
 }
 
-func GetVotingInfo(param Params) map[string]interface{} {
+func GetPollInfo(param Params) map[string]interface{} {
 	ids, exist := param.ArrayString("ids")
 	if !exist {
 		return ResponsePack(InvalidParams, "need a param called ids")
@@ -3834,7 +3834,7 @@ func GetVotingInfo(param Params) map[string]interface{} {
 		Description string   `json:"description"`
 		StartTime   uint64   `json:"startTime"`
 		EndTime     uint64   `json:"endTime"`
-		Options     []string `json:"options"`
+		Choices     []string `json:"choices"`
 	}
 	votings := Chain.GetState().InitateVotings
 	idsMap := make(map[string]struct{})
@@ -3857,7 +3857,7 @@ func GetVotingInfo(param Params) map[string]interface{} {
 				Description: v.Description,
 				StartTime:   v.StartTime,
 				EndTime:     v.EndTime,
-				Options:     v.Options,
+				Choices:     v.Choices,
 			})
 		}
 	}
@@ -3865,7 +3865,7 @@ func GetVotingInfo(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-func GetVotingDetails(param Params) map[string]interface{} {
+func GetPollDetails(param Params) map[string]interface{} {
 	idStr, exist := param.String("id")
 	if !exist {
 		return ResponsePack(InvalidParams, "need a param called id")
@@ -3881,7 +3881,7 @@ func GetVotingDetails(param Params) map[string]interface{} {
 	type VoteInfo struct {
 		Voter  string `json:"voter"`
 		Amount string `json:"amount"`
-		Option uint32 `json:"option"`
+		Choice uint32 `json:"choice"`
 	}
 	type VotingDetails struct {
 		ID          string     `json:"id"`
@@ -3889,7 +3889,7 @@ func GetVotingDetails(param Params) map[string]interface{} {
 		Description string     `json:"description"`
 		StartTime   uint64     `json:"startTime"`
 		EndTime     uint64     `json:"endTime"`
-		Options     []string   `json:"options"`
+		Choices     []string   `json:"choices"`
 		Votes       []VoteInfo `json:"votes"`
 	}
 
@@ -3906,7 +3906,7 @@ func GetVotingDetails(param Params) map[string]interface{} {
 		votes = append(votes, VoteInfo{
 			Voter:  k,
 			Amount: v.Amount,
-			Option: v.OptionIndex,
+			Choice: v.ChoiceIndex,
 		})
 	}
 	return ResponsePack(Success, &VotingDetails{
@@ -3915,7 +3915,7 @@ func GetVotingDetails(param Params) map[string]interface{} {
 		Description: voting.Description,
 		StartTime:   voting.StartTime,
 		EndTime:     voting.EndTime,
-		Options:     voting.Options,
+		Choices:     voting.Choices,
 		Votes:       votes,
 	})
 }

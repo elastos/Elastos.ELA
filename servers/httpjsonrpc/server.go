@@ -115,9 +115,9 @@ func StartRPCServer() {
 	mainMux["votestatus"] = VoteStatus
 
 	// memo voting
-	mainMux["getpoll"] = GetPoll
-	mainMux["getvotinginfo"] = GetVotingInfo
-	mainMux["getvotingdetails"] = GetVotingDetails
+	mainMux["getpolls"] = GetPolls
+	mainMux["getpollinfo"] = GetPollInfo
+	mainMux["getpolldetails"] = GetPollDetails
 
 	// for cross-chain arbiter
 	mainMux["submitsidechainillegaldata"] = SubmitSidechainIllegalData

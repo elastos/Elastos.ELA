@@ -12,15 +12,15 @@ It is needed when you want to distinguish different requests.
 In version 2.0 it is required, while in version 1.0 it does not exist.
 
 
-### getpoll
+### getpolls
 
-Return the list of votings.
+Retrieves a comprehensive list of all poll identifiers (both active and completed) registered on the blockchain. This method returns the unique identifiers that can be used to query detailed information about each poll.
 
-result:
+#### Result
 
-| name      | type       | description                       |
+| Name      | Type       | Description                       |
 | --------- | ---------- | --------------------------------- |
-| ids       | []uint256   | the id list of voting             |
+| ids       | []uint256  | Array of unique poll identifiers  |
 
 #### Example
 
@@ -29,7 +29,7 @@ Request:
 ```
 {
   "jsonrpc": "2.0",
-  "method":"getpoll",
+  "method":"getpolls",
   "params": {},
   "id": 1
 }
@@ -51,26 +51,26 @@ Response:
 }
 ```
 
-### getVotingInfo
+### getPollInfo
 
-Return the voting info.
+Retrieves the voting information and metadata for one or more polls specified by their identifiers. Returns essential poll details including status, description, time range, and available voting choices.
 
-request:
+#### Request
 
-| name      | type       | description                       |
+| Name      | Type       | Description                       |
 | --------- | ---------- | --------------------------------- |
-| ids       | []uint256  | the id list of voting             |
+| ids       | []uint256  | Array of poll identifiers to query|
 
-result:
+#### Result
 
-| name      | type       | description                       |
+| Name      | Type       | Description                       |
 | --------- | ---------- | --------------------------------- |
-| id        | uint256    | the id of voting                  |
-| status    | string     | the status of voting              |
-| description | string   | the description of voting         |
-| startTime | uint64     | the start time of voting          |
-| endTime   | uint64     | the end time of voting            |
-| options   | []string   | the options of voting             |
+| id        | uint256    | Unique identifier of the poll     |
+| status    | string     | Current status of the poll (e.g., "voting", "finished") |
+| description | string   | Human-readable description of the poll |
+| startTime | uint64     | Unix timestamp indicating when the poll started |
+| endTime   | uint64     | Unix timestamp indicating when the poll ends or ended |
+| choices   | []string   | Array of available voting choices for this poll |
 
 
 #### Example
@@ -80,7 +80,7 @@ Request:
 ```
 {
   "jsonrpc": "2.0",
-  "method":"getvotinginfo",
+  "method":"getpollinfo",
   "params": {
     "ids": [
       "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405",
@@ -104,7 +104,7 @@ Response:
     "description": "",
     "startTime": 1767143580,
     "endTime": 1767153580,
-    "options": [
+    "choices": [
       "option1",
       "option2"
     ]
@@ -115,7 +115,7 @@ Response:
     "description": "",
     "startTime": 1767143580,
     "endTime": 1767153580,
-    "options": [
+    "choices": [
       "option1",
       "option2"
     ]
@@ -125,37 +125,35 @@ Response:
 }
 ```
 
-### getVotingDetails
+### getPollDetails
 
-### getvotingdetails
+Retrieves comprehensive details of a specific poll, including all voting records with voter addresses, voting amounts, and selected choices. This method provides complete transparency into the poll's voting history and results.
 
-Return the details of voting. include the voter and the voting amount.
+#### Request
 
-request:
-
-| name      | type    | description                       |
+| Name      | Type    | Description                       |
 | --------- | ------- | --------------------------------- |
-| id        | uint256 | the id of voting target           |
+| id        | uint256 | Unique identifier of the poll to query |
 
 
-result:
+#### Result
 
-| name      | type   | description                       |
+| Name      | Type   | Description                       |
 | --------- | ------ | --------------------------------- |
-| status    | string | the status of voting              |
-| description | string | the description of voting       |
-| startTime | int64 | the start time of voting           |
-| endTime   | int64 | the end time of voting             |
-| options   | []string | the options of voting           |
-| votes    | []vote | the votes of voting                |
+| status    | string | Current status of the poll (e.g., "voting", "finished") |
+| description | string | Human-readable description of the poll |
+| startTime | int64 | Unix timestamp indicating when the poll started |
+| endTime   | int64 | Unix timestamp indicating when the poll ends or ended |
+| choices   | []string | Array of available voting choices for this poll |
+| votes    | []vote | Array of all votes cast in this poll |
 
-vote:
+#### Vote Object
 
-| name      | type   | description                       |
+| Name      | Type   | Description                       |
 | --------- | ------ | --------------------------------- |
-| voter     | string | the address of voter              |
-| amount    | string | the amount of voting              |
-| option    | uint32 | the option of voting              |
+| voter     | string | Blockchain address of the voter   |
+| amount    | string | Voting amount in ELA (as a string to preserve precision) |
+| choice    | uint32 | Index of the selected choice (0-based) |
 
 #### Example
 
@@ -164,7 +162,7 @@ Request:
 ```
 {
   "jsonrpc": "2.0",
-  "method":"getvotingdetails",
+  "method":"getpolldetails",
   "params": {
     "id": "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405"
   },
@@ -183,7 +181,7 @@ Response:
     "description": "",
     "startTime": 1767143580,
     "endTime": 1767153580,
-    "options": [
+    "choices": [
       "option1",
       "option2"
     ],
@@ -191,12 +189,12 @@ Response:
       {
         "voter": "",
         "amount": "1.23"
-        "option": 1
+        "choice": 1
       },
       {
         "voter": "",
         "amount": "4.56"
-        "option": 2
+        "choice": 2
       }
     ]
   },

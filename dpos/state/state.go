@@ -1999,8 +1999,8 @@ type InitateVoting struct {
 	ID          common.Uint256
 	EndTime     uint64
 	Description string
-	OptionCount uint32
-	Options     []string
+	ChoiceCount uint32
+	Choices     []string
 	Url         string
 
 	// not from memo
@@ -2020,11 +2020,11 @@ func (v *InitateVoting) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = common.WriteUint32(w, v.OptionCount)
+	err = common.WriteUint32(w, v.ChoiceCount)
 	if err != nil {
 		return err
 	}
-	for _, option := range v.Options {
+	for _, option := range v.Choices {
 		err = common.WriteVarString(w, option)
 		if err != nil {
 			return err
@@ -2051,16 +2051,16 @@ func (v *InitateVoting) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	v.OptionCount, err = common.ReadUint32(r)
+	v.ChoiceCount, err = common.ReadUint32(r)
 	if err != nil {
 		return err
 	}
-	for i := uint32(0); i < v.OptionCount; i++ {
+	for i := uint32(0); i < v.ChoiceCount; i++ {
 		option, err := common.ReadVarString(r)
 		if err != nil {
 			return err
 		}
-		v.Options = append(v.Options, option)
+		v.Choices = append(v.Choices, option)
 	}
 	v.Url, err = common.ReadVarString(r)
 	if err != nil {
@@ -2071,7 +2071,7 @@ func (v *InitateVoting) Deserialize(r io.Reader) error {
 
 type UserVoting struct {
 	ID          common.Uint256
-	OptionIndex uint32
+	ChoiceIndex uint32
 	Amount      string
 }
 
@@ -2080,7 +2080,7 @@ func (v *UserVoting) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = common.WriteUint32(w, v.OptionIndex)
+	err = common.WriteUint32(w, v.ChoiceIndex)
 	if err != nil {
 		return err
 	}
@@ -2096,7 +2096,7 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	v.OptionIndex, err = common.ReadUint32(r)
+	v.ChoiceIndex, err = common.ReadUint32(r)
 	if err != nil {
 		return err
 	}
@@ -2161,7 +2161,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					continue
 				}
 				// check if userVoting.OptionIndex is valid
-				if userVoting.OptionIndex >= s.InitateVotings[userVoting.ID].OptionCount {
+				if userVoting.ChoiceIndex >= s.InitateVotings[userVoting.ID].ChoiceCount {
 					log.Warn("[memo vote] userVoting.OptionIndex is invalid")
 					continue
 				}
@@ -2186,7 +2186,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 						s.UserVotings[userVoting.ID] = make(map[string]UserVoting)
 					}
 					s.UserVotings[userVoting.ID][op.ReferKey()] = userVoting
-					log.Info("[memo vote] userVoting.ID: %s, optionIndex: %d, amount: %s", userVoting.ID, userVoting.OptionIndex, userVoting.Amount)
+					log.Info("[memo vote] userVoting.ID: %s, optionIndex: %d, amount: %s", userVoting.ID, userVoting.ChoiceIndex, userVoting.Amount)
 					s.MemoVotes[op.ReferKey()] = struct{}{}
 				}, func() {
 					delete(s.UserVotings[userVoting.ID], op.ReferKey())

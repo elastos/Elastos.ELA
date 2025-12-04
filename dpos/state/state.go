@@ -2159,12 +2159,6 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 const InitateVotingFlag = "pollinit"
 const UserVotingFlag = "pollvote"
 
-// VoteFlag is converted from hex string "564f5445" to string "VOTE"
-var VoteFlag = func() string {
-	bytes, _ := hex.DecodeString("564f5445")
-	return string(bytes)
-}()
-
 const MinVotingMemoSize = 45
 
 // processVotes takes a transaction, if the transaction including any vote
@@ -2640,12 +2634,13 @@ func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 // processVoteCancel takes a previous vote output and decrease producers votes.
 func (s *State) processMemoVoteCancel(referKey string, height uint32) {
 	for k, v := range s.UserVotings {
+		key := k
 		if vote, ok := v[referKey]; ok {
 			s.History.Append(height, func() {
-				delete(s.UserVotings[k], referKey)
+				delete(s.UserVotings[key], referKey)
 				delete(s.MemoVotes, referKey)
 			}, func() {
-				s.UserVotings[k][referKey] = vote
+				s.UserVotings[key][referKey] = vote
 				s.MemoVotes[referKey] = struct{}{}
 			})
 		}

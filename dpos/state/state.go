@@ -2179,7 +2179,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 			if len(data) < MinVotingMemoSize {
 				continue
 			}
-			flag := hex.EncodeToString(data[0:8])
+			flag := string(data[0:8])
 			switch flag {
 			case InitateVotingFlag:
 				var initateVoting InitateVoting

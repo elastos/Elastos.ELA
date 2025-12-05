@@ -373,6 +373,66 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 	), nil
 }
 
+func createTransactionWithMemo(walletPath string, from string, fee common.Fixed64, outputLock uint32, txLock uint32,
+	txType common2.TxType, payloadVersion byte, payload interfaces.Payload, memoData []byte,
+	outputs ...*OutputInfo) (interfaces.Transaction, error) {
+
+	// get sender in wallet by from address
+	var sender *account.AccountData
+	var err error
+	if txType == common2.ReturnDepositCoin {
+		sender, err = getDSender(walletPath, from)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		sender, err = getSender(walletPath, from)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// create outputs
+	txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, outputLock)
+	if err != nil {
+		return nil, err
+	}
+
+	// create inputs
+	txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
+	if err != nil {
+		return nil, err
+	}
+	// create attributes
+	txAttrMemo := common2.NewAttribute(common2.Memo, memoData)
+	txAttributes := make([]*common2.Attribute, 0)
+	txAttributes = append(txAttributes, &txAttrMemo)
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		txType,
+		payloadVersion,
+		payload,
+		txAttributes,
+		txInputs,
+		txOutputs,
+		txLock,
+		[]*pg.Program{txProgram},
+	), nil
+}
+
 func createReturnDepositCommonTransaction(c *cli.Context, txType common2.TxType) error {
 	var name string
 	var err error

@@ -36,6 +36,26 @@ var (
 	}
 
 	// Transaction flags
+	TransactionMemoType = cli.StringFlag{
+		Name:  "type",
+		Usage: "the poll type `<byte>` from 0 to 256",
+	}
+	TransactionMemoVotingTime = cli.StringFlag{
+		Name:  "votingtime",
+		Usage: "the poll voting time `<uint32>` in seconds",
+	}
+	TransctionMemoDescription = cli.StringFlag{
+		Name:  "description",
+		Usage: "the poll description `<string>`",
+	}
+	TransactionMemoChoices = cli.StringFlag{
+		Name:  "choices",
+		Usage: "the poll choices `<[]string>`, separate choices with comma ',' ",
+	}
+	TransactionMemoUrl = cli.StringFlag{
+		Name:  "url",
+		Usage: "the poll url `<string>`",
+	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
 		Usage: "the sender `<address>` of the transaction",

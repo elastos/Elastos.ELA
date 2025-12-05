@@ -3847,6 +3847,7 @@ func GetPollInfo(param Params) map[string]interface{} {
 		StartTime   uint64   `json:"startTime"`
 		EndTime     uint64   `json:"endTime"`
 		Choices     []string `json:"choices"`
+		Url         string   `json:"url"`
 	}
 	votings := Chain.GetState().GetAllInitateVotings()
 	idsMap := make(map[string]struct{})
@@ -3870,6 +3871,7 @@ func GetPollInfo(param Params) map[string]interface{} {
 				StartTime:   v.StartTime,
 				EndTime:     v.EndTime,
 				Choices:     v.Choices,
+				Url:         v.Url,
 			})
 		}
 	}
@@ -3903,6 +3905,7 @@ func GetPollDetails(param Params) map[string]interface{} {
 		StartTime   uint64     `json:"startTime"`
 		EndTime     uint64     `json:"endTime"`
 		Choices     []string   `json:"choices"`
+		Url         string     `json:"url"`
 		Votes       []VoteInfo `json:"votes"`
 	}
 
@@ -3931,6 +3934,7 @@ func GetPollDetails(param Params) map[string]interface{} {
 		StartTime:   voting.StartTime,
 		EndTime:     voting.EndTime,
 		Choices:     voting.Choices,
+		Url:         voting.Url,
 		Votes:       votes,
 	})
 }

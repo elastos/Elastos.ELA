@@ -2020,7 +2020,7 @@ func (s *State) activateProducer(p *payload.ActivateProducer, height uint32) {
 }
 
 type InitateVoting struct {
-	ID          common.Uint256
+	Type        byte
 	EndTime     uint64
 	Description string
 	ChoiceCount uint32
@@ -2029,10 +2029,11 @@ type InitateVoting struct {
 
 	// not from memo
 	StartTime uint64
+	ID        common.Uint256
 }
 
 func (v *InitateVoting) Serialize(w io.Writer) error {
-	err := v.SerializeWithOutStartTime(w)
+	err := v.SerializeUnsigned(w)
 	if err != nil {
 		return err
 	}
@@ -2040,15 +2041,18 @@ func (v *InitateVoting) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (v *InitateVoting) SerializeWithOutStartTime(w io.Writer) error {
-	err := v.ID.Serialize(w)
+	err = v.ID.Serialize(w)
 	if err != nil {
 		return err
 	}
-	err = common.WriteUint64(w, v.EndTime)
+	return nil
+}
+
+func (v *InitateVoting) SerializeUnsigned(w io.Writer) error {
+	if _, err := w.Write([]byte{v.Type}); err != nil {
+		return err
+	}
+	err := common.WriteUint64(w, v.EndTime)
 	if err != nil {
 		return err
 	}
@@ -2074,7 +2078,7 @@ func (v *InitateVoting) SerializeWithOutStartTime(w io.Writer) error {
 }
 
 func (v *InitateVoting) Deserialize(r io.Reader) error {
-	err := v.DeserializeWithoutStartTime(r)
+	err := v.DeserializeUnsigned(r)
 	if err != nil {
 		return err
 	}
@@ -2082,16 +2086,19 @@ func (v *InitateVoting) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (v *InitateVoting) DeserializeWithoutStartTime(r io.Reader) error {
-
-	var err error
 	err = v.ID.Deserialize(r)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (v *InitateVoting) DeserializeUnsigned(r io.Reader) error {
+	vType, err := common.ReadBytes(r, 1)
+	if err != nil {
+		return err
+	}
+	v.Type = vType[0]
 	v.EndTime, err = common.ReadUint64(r)
 	if err != nil {
 		return err
@@ -2176,21 +2183,23 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 			switch flag {
 			case InitateVotingFlag:
 				var initateVoting InitateVoting
-				err := initateVoting.DeserializeWithoutStartTime(bytes.NewReader(data[8:]))
+				err := initateVoting.DeserializeUnsigned(bytes.NewReader(data[8:]))
 				if err != nil {
 					log.Warn("[memo vote] deserialize initateVoting failed")
 					continue
 				}
+				id := common.Hash(data)
 				// check if initateVoting.ID is already in s.InitateVotings
-				if _, ok := s.InitateVotings[initateVoting.ID]; ok {
+				if _, ok := s.InitateVotings[id]; ok {
 					log.Warn("[memo vote] initateVoting.ID is already in s.InitateVotings")
 					continue
 				}
 				initateVoting.StartTime = uint64(blockTime)
+				initateVoting.ID = id
 				s.History.Append(height, func() {
-					s.InitateVotings[initateVoting.ID] = initateVoting
+					s.InitateVotings[id] = initateVoting
 				}, func() {
-					delete(s.InitateVotings, initateVoting.ID)
+					delete(s.InitateVotings, id)
 				})
 			case UserVotingFlag:
 				var userVoting UserVoting
@@ -2199,9 +2208,8 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					log.Warn("[memo vote] deserialize userVoting failed")
 					continue
 				}
-				// check if userVoting.ID is already in s.UserVotings
 				if _, ok := s.UserVotings[userVoting.ID]; !ok {
-					log.Warn("[memo vote] userVoting.ID is not in s.UserVotings")
+					log.Warn("[memo vote] ID not exist, userVoting.ID: %s", userVoting.ID)
 					continue
 				}
 				// check if tx output exist

@@ -3811,12 +3811,24 @@ func VoteStatus(param Params) map[string]interface{} {
 }
 
 func GetPolls(param Params) map[string]interface{} {
+	maxType := uint32(256)
+	vType, exist := param.Uint("type")
+	if !exist {
+		vType = maxType
+	}
+	if vType > maxType {
+		return ResponsePack(InvalidParams, "invalid type")
+	}
+	vByteType := byte(vType)
 	type Poll struct {
 		IDs []string `json:"ids"`
 	}
 	votings := Chain.GetState().GetAllInitateVotings()
 	ids := make([]string, 0)
 	for _, v := range votings {
+		if vType < maxType && v.Type != vByteType {
+			continue
+		}
 		ids = append(ids, v.ID.String())
 	}
 	return ResponsePack(Success, &Poll{IDs: ids})

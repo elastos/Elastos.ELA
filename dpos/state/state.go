@@ -2129,9 +2129,12 @@ type UserVoting struct {
 	ID          common.Uint256
 	ChoiceIndex uint32
 	Amount      string
+
+	// not from memo
+	Voter common.Uint168
 }
 
-func (v *UserVoting) Serialize(w io.Writer) error {
+func (v *UserVoting) SerializeUnsigned(w io.Writer) error {
 	err := v.ID.Serialize(w)
 	if err != nil {
 		return err
@@ -2147,7 +2150,19 @@ func (v *UserVoting) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (v *UserVoting) Deserialize(r io.Reader) error {
+func (v *UserVoting) Serialize(w io.Writer) error {
+	err := v.SerializeUnsigned(w)
+	if err != nil {
+		return err
+	}
+	err = v.Voter.Serialize(w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *UserVoting) DeserializeUnsigned(r io.Reader) error {
 	err := v.ID.Deserialize(r)
 	if err != nil {
 		return err
@@ -2157,6 +2172,18 @@ func (v *UserVoting) Deserialize(r io.Reader) error {
 		return err
 	}
 	v.Amount, err = common.ReadVarString(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *UserVoting) Deserialize(r io.Reader) error {
+	err := v.DeserializeUnsigned(r)
+	if err != nil {
+		return err
+	}
+	err = v.Voter.Deserialize(r)
 	if err != nil {
 		return err
 	}
@@ -2203,7 +2230,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 				})
 			case UserVotingFlag:
 				var userVoting UserVoting
-				err := userVoting.Deserialize(bytes.NewReader(data[8:]))
+				err := userVoting.DeserializeUnsigned(bytes.NewReader(data[8:]))
 				if err != nil {
 					log.Warn("[memo vote] deserialize userVoting failed")
 					continue
@@ -2212,9 +2239,19 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					log.Warn("[memo vote] ID not exist, userVoting.ID: %s", userVoting.ID)
 					continue
 				}
+				code := tx.Programs()[0].Code
+				// get address from code
+				pgh, _ := utils.GetProgramHashByCode(code)
+				userVoting.Voter = *pgh
+
 				// check if tx output exist
 				if len(tx.Outputs()) < 1 {
 					log.Warn("[memo vote] tx output count is less than 1")
+					continue
+				}
+				// check if first tx output address equal to userVoting.Voter
+				if tx.Outputs()[0].ProgramHash != userVoting.Voter {
+					log.Warn("[memo vote] first tx output address not equal to userVoting.Voter")
 					continue
 				}
 				// check if userVoting.OptionIndex is valid

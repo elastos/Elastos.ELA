@@ -3919,9 +3919,10 @@ func GetPollDetails(param Params) map[string]interface{} {
 	votes := make([]VoteInfo, 0)
 	userVotes := Chain.GetState().GetAllUserVotings()
 	if userVotesForPoll, exists := userVotes[*id]; exists {
-		for k, v := range userVotesForPoll {
+		for _, v := range userVotesForPoll {
+			addr, _ := v.Voter.ToAddress()
 			votes = append(votes, VoteInfo{
-				Voter:  k,
+				Voter:  addr,
 				Amount: v.Amount,
 				Choice: v.ChoiceIndex,
 			})

@@ -2208,7 +2208,7 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					log.Warn("[memo vote] deserialize userVoting failed")
 					continue
 				}
-				if _, ok := s.UserVotings[userVoting.ID]; !ok {
+				if _, ok := s.InitateVotings[userVoting.ID]; !ok {
 					log.Warn("[memo vote] ID not exist, userVoting.ID: %s", userVoting.ID)
 					continue
 				}

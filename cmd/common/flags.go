@@ -48,7 +48,7 @@ var (
 		Name:  "description",
 		Usage: "the poll description `<string>`",
 	}
-	TransactionMemoChoices = cli.StringFlag{
+	TransactionMemoChoices = cli.StringSliceFlag{
 		Name:  "choices",
 		Usage: "the poll choices `<[]string>`, separate choices with comma ',' ",
 	}

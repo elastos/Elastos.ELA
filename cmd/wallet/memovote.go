@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
@@ -224,11 +223,11 @@ func CreateMemoInitatePollTransaction(c *cli.Context) error {
 		return errors.New("use --description to specify poll description")
 	}
 
-	choices := c.String("choices")
-	if choices == "" {
+	choices := c.StringSlice("choices")
+	if choices == nil {
 		return errors.New("use --choices to specify poll choices")
 	}
-	choicesList := strings.Split(choices, ",")
+	fmt.Println("choices: ", choices)
 
 	pollUrl := c.String("url")
 	if pollUrl == "" {
@@ -238,14 +237,16 @@ func CreateMemoInitatePollTransaction(c *cli.Context) error {
 	fmt.Println("type: ", typeInt)
 	fmt.Println("endTime: ", endTime)
 	fmt.Println("description: ", description)
-	fmt.Println("choicesList: ", choicesList)
+	for i, ch := range choices {
+		fmt.Println("choice[", i, "]: ", ch)
+	}
 	fmt.Println("pollUrl: ", pollUrl)
 	initatePollMemo := InitateVoting{
 		Type:        byte(typeInt),
 		EndTime:     uint64(endTime),
 		Description: description,
-		ChoiceCount: uint32(len(choicesList)),
-		Choices:     choicesList,
+		ChoiceCount: uint32(len(choices)),
+		Choices:     choices,
 		Url:         pollUrl,
 	}
 	var initatePollMemoBytes bytes.Buffer

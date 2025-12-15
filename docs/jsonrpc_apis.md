@@ -21,6 +21,7 @@ Retrieves a comprehensive list of all poll identifiers (both active and complete
 | Name      | Type       | Description                       |
 | --------- | ---------- | --------------------------------- |
 | ids       | []uint256  | Array of unique poll identifiers  |
+| type      | uint8      | Type of poll, from 0 to 255       |
 
 #### Example
 
@@ -30,7 +31,9 @@ Request:
 {
   "jsonrpc": "2.0",
   "method":"getpolls",
-  "params": {},
+  "params": {
+    "type": 0
+  },
   "id": 1
 }
 ```

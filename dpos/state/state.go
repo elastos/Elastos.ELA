@@ -1856,7 +1856,7 @@ func (s *State) processTransaction(tx interfaces.Transaction, blockTime uint32, 
 		s.processDeposit(tx, height)
 	}
 	s.processCancelVotes(tx, height)
-	s.processCancelMemoVotes(tx, height)
+	s.processCancelMemoVotes(tx, height, blockTime)
 }
 
 func GetOwnerKeyCodeHash(ownerKey []byte) (ownKeyProgramHash *common.Uint160, err error) {
@@ -2274,6 +2274,11 @@ func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height
 					log.Warn("[memo vote] voteAmount != tx.Outputs()[0].Value")
 					continue
 				}
+				// check endTime with blockTime
+				if uint64(blockTime) > s.InitateVotings[userVoting.ID].EndTime {
+					log.Warn("[memo vote] blockTime > endTime")
+					continue
+				}
 				op := common2.NewOutPoint(tx.Hash(), 0)
 				s.History.Append(height, func() {
 					if _, ok := s.UserVotings[userVoting.ID]; !ok {
@@ -2599,12 +2604,12 @@ func (s *State) addProducerAssert(output *common2.Output, height uint32) bool {
 }
 
 // processCancelVotes takes a transaction output with vote payload.
-func (s *State) processCancelMemoVotes(tx interfaces.Transaction, height uint32) {
+func (s *State) processCancelMemoVotes(tx interfaces.Transaction, height uint32, blockTime uint32) {
 	for _, input := range tx.Inputs() {
 		referKey := input.ReferKey()
 		_, ok := s.MemoVotes[referKey]
 		if ok {
-			s.processMemoVoteCancel(referKey, height)
+			s.processMemoVoteCancel(referKey, height, uint64(blockTime))
 		}
 	}
 }
@@ -2677,8 +2682,12 @@ func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 }
 
 // processVoteCancel takes a previous vote output and decrease producers votes.
-func (s *State) processMemoVoteCancel(referKey string, height uint32) {
+func (s *State) processMemoVoteCancel(referKey string, height uint32, blockTime uint64) {
 	for k, v := range s.UserVotings {
+		iv := s.InitateVotings[k]
+		if blockTime > iv.EndTime {
+			continue
+		}
 		key := k
 		if vote, ok := v[referKey]; ok {
 			s.History.Append(height, func() {

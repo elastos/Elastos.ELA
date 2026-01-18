@@ -129,6 +129,12 @@ func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 	a.NeedRevertToDPOSTX = need
 }
 
+func (a *Arbiters) IsNeedRevertToDPOSTX() bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.NeedRevertToDPOSTX
+}
+
 func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
 	if len(ownerKey) == crypto.NegativeBigLength {
 		ownKeyProgramHash, err = contract.PublicKeyToStandardProgramHash(ownerKey)

@@ -86,6 +86,10 @@ func (a *ArbitratorsMock) GetDPoSV2ActiveHeight() uint32 {
 	return 2000000
 }
 
+func (a *ArbitratorsMock) IsNeedRevertToDPOSTX() bool {
+	return false
+}
+
 func (a *ArbitratorsMock) IsInPOWMode() bool {
 	return false
 }

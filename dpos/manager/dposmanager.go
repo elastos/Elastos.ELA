@@ -557,7 +557,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 
-	if d.server.IsCurrent() && isCurArbiter && d.arbitrators.IsNeedRevertToDPOSTX() {
+	if d.server.IsCurrent() && isCurArbiter {
 		d.handler.currentHandler.TryCreateRevertToDPOSTx(b.Height)
 	}
 
@@ -565,6 +565,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 		d.changeHeight()
 		if b.Height > d.dispatcher.GetFinishedHeight() {
 			// need to reset consensus
+			log.Info("### OnBlockReceived set ready", b.Height)
 			d.consensus.SetReady(b.Height)
 		}
 		return

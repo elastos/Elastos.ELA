@@ -33,11 +33,18 @@ jobs:
     - name: Check code quality
       run: |
         go version
-        export PATH=$PATH:$(go env GOPATH)/bin
-        wget https://github.com/mgechev/revive/releases/download/v1.2.1/revive_1.2.1_Linux_x86_64.tar.gz
+        export GOROOT=$(go env GOROOT)
+        export GOPATH=$(go env GOPATH)
+        export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+        echo "GOROOT=$GOROOT"
+        echo "GOPATH=$GOPATH"
+        echo "PATH=$PATH"
+        which go
+        go env GOROOT
+        wget -q https://github.com/mgechev/revive/releases/download/v1.2.1/revive_1.2.1_Linux_x86_64.tar.gz
         tar xf revive_1.2.1_Linux_x86_64.tar.gz -C /tmp
         chmod +x /tmp/revive
-        /tmp/revive -config .revive.toml -formatter friendly -exclude vendor/... $(go list ./...)
+        env GOROOT=$GOROOT GOPATH=$GOPATH PATH=$GOROOT/bin:$GOPATH/bin:$PATH /tmp/revive -config .revive.toml -formatter friendly -exclude vendor/... $(go list ./...)
 
     - name: Make
       run: make dev

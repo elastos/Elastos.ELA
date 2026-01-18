@@ -106,7 +106,6 @@ func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 	if p.WorkHeightInterval != payload.WorkHeightInterval {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid WorkHeightInterval")), true
-
 	}
 
 	// check dpos state

@@ -567,8 +567,8 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 		d.changeHeight()
 		if b.Height > d.dispatcher.GetFinishedHeight() {
 			// need to reset consensus
-			log.Info("### OnBlockReceived set ready ", b.Height)
-			d.consensus.SetReady(b.Height)
+			log.Info("### OnBlockReceived resset consensus ", b.Height)
+			d.dispatcher.resetConsensus(b.Height)
 		}
 		log.Info("### [OnBlockReceived] return because in POW mode, height:", b.Height)
 		return

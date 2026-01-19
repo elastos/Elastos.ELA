@@ -41,4 +41,5 @@ Notable changes
 
 ### Bug Fixes
 
-* **dpos** fixed an issue of creating revert to dpos tx ([13cb45f7](https://github.com/elastos/Elastos.ELA/commit/13cb45f7da247650b1b9bcd9fd4b7d76185356f7))
+
+* **dpos** reset consensus in pow ([13cb45f7](https://github.com/elastos/Elastos.ELA/commit/13cb45f7da247650b1b9bcd9fd4b7d76185356f7))

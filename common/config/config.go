@@ -20,6 +20,12 @@ const (
 	ConfigFile = "./config.json"
 	// DataDir storing the chain data.
 	DataDir = "elastos"
+	// MainNetCrossChainUTXORestrictionHeight is the coordinated mainnet
+	// activation height for the CrossChain UTXO spending restriction.
+	MainNetCrossChainUTXORestrictionHeight uint32 = 2256400
+	// DisabledCrossChainUTXORestrictionHeight keeps the restriction inactive
+	// on networks that have not adopted a coordinated activation height.
+	DisabledCrossChainUTXORestrictionHeight uint32 = math.MaxUint32
 )
 
 type Config struct {
@@ -247,7 +253,7 @@ func GetDefaultParams() *Configuration {
 		NewELAIssuanceHeight:            919800,  // 3.5 * 365 * 720
 		SmallCrossTransferThreshold:     100000000,
 		ReturnDepositCoinFee:            100,
-		CrossChainUTXORestrictionHeight: math.MaxUint32,
+		CrossChainUTXORestrictionHeight: MainNetCrossChainUTXORestrictionHeight,
 		NewCrossChainStartHeight:        1032840,
 		ReturnCrossChainCoinStartHeight: 1032840,
 		ProhibitTransferToDIDHeight:     1032840,
@@ -375,6 +381,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.NewELAIssuanceHeight = 774920   //767000 + 720 * 11
 	p.SmallCrossTransferThreshold = 100000000
 	p.ReturnDepositCoinFee = 100
+	p.CrossChainUTXORestrictionHeight = DisabledCrossChainUTXORestrictionHeight
 	p.NewCrossChainStartHeight = 807000
 	p.ReturnCrossChainCoinStartHeight = 807000
 	p.CRConfiguration.CRCProposalDraftDataStartHeight = 807000
@@ -504,6 +511,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.NewELAIssuanceHeight = 691740   //690300 + 720 * 2
 	p.SmallCrossTransferThreshold = 100000000
 	p.ReturnDepositCoinFee = 100
+	p.CrossChainUTXORestrictionHeight = DisabledCrossChainUTXORestrictionHeight
 	p.NewCrossChainStartHeight = 730000
 	p.ReturnCrossChainCoinStartHeight = 730000
 	p.CRConfiguration.CRCProposalDraftDataStartHeight = 730000
@@ -646,8 +654,9 @@ type Configuration struct {
 	// ReturnDepositCoinFee indicates the fee the
 	ReturnDepositCoinFee common.Fixed64 `screw:"--returndepositcoinfee" usage:"defines the fee of return cross chain deposit coin"`
 	// CrossChainUTXORestrictionHeight defines the height at which only
-	// authorized cross chain transactions may spend CrossChain UTXOs.
-	CrossChainUTXORestrictionHeight uint32 `screw:"--crosschainutxorestrictionheight" usage:"defines the height to restrict CrossChain UTXO spending"`
+	// authorized cross chain transactions may spend CrossChain UTXOs. The
+	// mainnet value is enforced after config-file and CLI parsing.
+	CrossChainUTXORestrictionHeight uint32
 	// NewCrossChainStartHeight defines the height of new cross chain transaction started.
 	NewCrossChainStartHeight uint32 `screw:"--newcrosschainstartheight" usage:"defines the height to only support TransferCrossChainAsset v1"`
 	// ReturnCrossChainCoinStartHeight indicates the start height of ReturnCroossChainDepositCoin transaction

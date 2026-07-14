@@ -12,6 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestCrossChainUTXORestrictionHeightKeepsMainnetActivationIsolated verifies
+// the coordinated mainnet activation does not apply to test or regnet.
+func TestCrossChainUTXORestrictionHeightKeepsMainnetActivationIsolated(t *testing.T) {
+	assert.Equal(t, uint32(MainNetCrossChainUTXORestrictionHeight),
+		GetDefaultParams().CrossChainUTXORestrictionHeight)
+	assert.Equal(t, uint32(DisabledCrossChainUTXORestrictionHeight),
+		GetDefaultParams().TestNet().CrossChainUTXORestrictionHeight)
+	assert.Equal(t, uint32(DisabledCrossChainUTXORestrictionHeight),
+		GetDefaultParams().RegNet().CrossChainUTXORestrictionHeight)
+}
+
 func TestStringUint(t *testing.T) {
 	//
 	mainNetFoundation := "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"

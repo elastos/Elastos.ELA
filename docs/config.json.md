@@ -73,7 +73,7 @@ Default config for `testnet`
     "NewELAIssuanceHeight": 919800,             // New ELA Issuance Height
     "SmallCrossTransferThreshold": 100000000,   // Small cross chain transaction threshold
     "ReturnDepositCoinFee": 100,                // Return Deposit Fee
-    "CrossChainUTXORestrictionHeight": 4294967295, // Disabled by default. Release coordination must set one identical future height on every validator.
+    "CrossChainUTXORestrictionHeight": 2256400, // Mainnet consensus activation. Local config and CLI overrides are ignored.
     "NewCrossChainStartHeight": 1032840,        // New Cross Chain Start Height
     "ReturnCrossChainCoinStartHeight": 1032840, // Return Cross Chain Coin Start Height
     "ProhibitTransferToDIDHeight": 1032840,     // Prohibit Transfer To DID Height

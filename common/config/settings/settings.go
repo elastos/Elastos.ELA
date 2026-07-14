@@ -97,9 +97,23 @@ func (s *Settings) SetupConfig(withScrew bool, about string, version string) *co
 	if withScrew {
 		screw.Bind(conf.Configuration, version, about)
 	}
+	enforceCrossChainUTXORestrictionHeight(conf.Configuration)
 	conf.Configuration = conf.Sterilize()
 	config.Parameters = conf.Configuration
 	return conf.Configuration
+}
+
+// enforceCrossChainUTXORestrictionHeight prevents local configuration from
+// changing the coordinated mainnet consensus activation height.
+func enforceCrossChainUTXORestrictionHeight(configuration *config.Configuration) {
+	switch strings.ToLower(configuration.ActiveNet) {
+	case "testnet", "test", "regnet", "regtest", "reg":
+		configuration.CrossChainUTXORestrictionHeight =
+			config.DisabledCrossChainUTXORestrictionHeight
+	default:
+		configuration.CrossChainUTXORestrictionHeight =
+			config.MainNetCrossChainUTXORestrictionHeight
+	}
 }
 
 func NewSettings() *Settings {

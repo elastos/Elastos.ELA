@@ -221,6 +221,8 @@ func (d *DPOSManager) ProcessHigherBlock(b *types.Block) {
 		log.Info("[ProcessHigherBlock] broadcast inv and try start new consensus")
 		d.network.BroadcastMessage(dmsg.NewInventory(b.Header.Previous))
 		d.network.BroadcastMessage(dmsg.NewInventory(b.Hash()))
+	} else {
+		log.Info("[ProcessHigherBlock] consensus is on duty, height:", b.Height)
 	}
 
 	if d.handler.TryStartNewConsensus(b) {
@@ -553,7 +555,7 @@ func (d *DPOSManager) OnChangeView() {
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
-	log.Infof("[OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
+	log.Infof("[OnBlockReceived] start hash %s IsCurrent %t, height: %d", b.Hash().String(), d.server.IsCurrent(), b.Height)
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 
@@ -563,13 +565,20 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 
 	if d.arbitrators.IsInPOWMode() {
 		d.changeHeight()
+		if b.Height > d.dispatcher.GetFinishedHeight() {
+			// need to reset consensus
+			log.Info("### OnBlockReceived resset consensus ", b.Height)
+			d.dispatcher.resetConsensus(b.Height)
+		}
+		log.Info("### [OnBlockReceived] return because in POW mode, height:", b.Height)
 		return
 	}
+
 	if confirmed {
 		d.ConfirmBlock(b.Height, b.Hash())
 		d.changeHeight()
 		d.dispatcher.illegalMonitor.CleanByBlock(b)
-		log.Info("[OnBlockReceived] received confirmed block")
+		log.Info("[OnBlockReceived] received confirmed block, height:", b.Height)
 		return
 	}
 	if !isCurArbiter {

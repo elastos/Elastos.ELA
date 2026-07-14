@@ -25,6 +25,7 @@ import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -61,6 +62,7 @@ type txValidatorSpecialTxTestSuite struct {
 	arbitrators        *state.ArbitratorsMock
 	arbitratorsPriKeys [][]byte
 	Chain              *blockchain.BlockChain
+	fixtureTipNode     *blockchain.BlockNode
 }
 
 func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
@@ -117,6 +119,9 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 	if err != nil {
 		s.Error(err)
 	}
+	if err := s.Chain.Init(nil); err != nil {
+		s.Error(err)
+	}
 	blockchain.DefaultLedger = &blockchain.Ledger{Arbitrators: s.arbitrators, Store: chainStore}
 	s.originalLedger = blockchain.DefaultLedger
 }
@@ -140,6 +145,136 @@ func (s *transactionSuite) SetupSuite() {
 func (s *txValidatorSpecialTxTestSuite) TearDownSuite() {
 	s.Chain.GetDB().Close()
 	blockchain.DefaultLedger = s.originalLedger
+}
+
+type arbiterCrossChainUTXOFixture struct {
+	bankAddress       string
+	depositInput      *common2.Input
+	depositTxHash     common.Uint256
+	payerProgramHash  common.Uint168
+	reserveAmount     common.Fixed64
+	transactionHeight uint32
+}
+
+// createArbiterCrossChainUTXOFixture persists a minimal main-chain deposit
+// chain so bridge transaction tests exercise real references and UTXO state.
+func (s *txValidatorSpecialTxTestSuite) createArbiterCrossChainUTXOFixture() arbiterCrossChainUTXOFixture {
+	const reserveAmount common.Fixed64 = 1000
+
+	bankProgramHash := common.Uint168{}
+	bankProgramHash[0] = byte(contract.PrefixCrossChain)
+	bankProgramHash[len(bankProgramHash)-1] = 1
+	bankAddress, err := bankProgramHash.ToAddress()
+	s.Require().NoError(err)
+
+	payerProgramHash := *s.Chain.GetParams().FoundationProgramHash
+	payerTransaction := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		nil,
+		nil,
+		[]*common2.Output{{
+			AssetID:     core.ELAAssetID,
+			Value:       reserveAmount * 2,
+			ProgramHash: payerProgramHash,
+			Type:        common2.OTNone,
+			Payload:     &outputpayload.DefaultOutput{},
+		}},
+		0,
+		nil,
+	)
+
+	depositInput := &common2.Input{
+		Previous: common2.OutPoint{TxID: payerTransaction.Hash()},
+	}
+	depositTransaction := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferCrossChainAsset,
+		payload.TransferCrossChainVersionV1,
+		&payload.TransferCrossChainAsset{},
+		nil,
+		[]*common2.Input{depositInput},
+		[]*common2.Output{{
+			AssetID:     core.ELAAssetID,
+			Value:       reserveAmount,
+			ProgramHash: bankProgramHash,
+			Type:        common2.OTCrossChain,
+			Payload: &outputpayload.CrossChainOutput{
+				Version:       outputpayload.CrossChainOutputVersion,
+				TargetAddress: bankAddress,
+				TargetAmount:  reserveAmount,
+			},
+		}},
+		0,
+		nil,
+	)
+
+	previousNode := s.fixtureTipNode
+	if previousNode == nil {
+		previousNode = s.Chain.BestChain
+	}
+	payerBlock := &types.Block{
+		Header: common2.Header{
+			Height:   s.Chain.GetDB().GetHeight() + 1,
+			Previous: *previousNode.Hash,
+		},
+		Transactions: []interfaces.Transaction{
+			payerTransaction,
+		},
+	}
+	payerBlockHash := payerBlock.Hash()
+	payerNode := blockchain.NewBlockNode(&payerBlock.Header, &payerBlockHash)
+	payerNode.InMainChain = true
+	payerNode.Parent = previousNode
+	s.Require().NoError(s.Chain.GetDB().SaveBlock(payerBlock, payerNode, nil,
+		blockchain.CalcPastMedianTime(payerNode)))
+
+	depositBlock := &types.Block{
+		Header: common2.Header{
+			Height:   s.Chain.GetDB().GetHeight() + 1,
+			Previous: payerBlockHash,
+		},
+		Transactions: []interfaces.Transaction{
+			depositTransaction,
+		},
+	}
+	depositBlockHash := depositBlock.Hash()
+	depositNode := blockchain.NewBlockNode(&depositBlock.Header, &depositBlockHash)
+	depositNode.InMainChain = true
+	depositNode.Parent = payerNode
+	s.Require().NoError(s.Chain.GetDB().SaveBlock(depositBlock, depositNode, nil,
+		blockchain.CalcPastMedianTime(depositNode)))
+	s.fixtureTipNode = depositNode
+
+	return arbiterCrossChainUTXOFixture{
+		bankAddress:       bankAddress,
+		depositInput:      &common2.Input{Previous: common2.OutPoint{TxID: depositTransaction.Hash()}},
+		depositTxHash:     depositTransaction.Hash(),
+		payerProgramHash:  payerProgramHash,
+		reserveAmount:     reserveAmount,
+		transactionHeight: depositBlock.Height,
+	}
+}
+
+// prepareArbiterCrossChainContext supplies the state dependencies reached by
+// a complete ContextCheck and restores the shared test ledger afterwards.
+func (s *txValidatorSpecialTxTestSuite) prepareArbiterCrossChainContext(
+	chainParams *config.Configuration) func() {
+	previousConsensus := s.Chain.GetState().ConsensusAlgorithm
+	previousCommittee := s.Chain.GetCRCommittee()
+	previousLedgerBlockchain := blockchain.DefaultLedger.Blockchain
+
+	s.Chain.GetState().ConsensusAlgorithm = state.DPOS
+	s.Chain.SetCRCommittee(crstate.NewCommittee(chainParams, s.Chain.CkpManager))
+	blockchain.DefaultLedger.Blockchain = s.Chain
+
+	return func() {
+		s.Chain.GetState().ConsensusAlgorithm = previousConsensus
+		s.Chain.SetCRCommittee(previousCommittee)
+		blockchain.DefaultLedger.Blockchain = previousLedgerBlockchain
+	}
 }
 
 func TestTxValidatorSpecialTxSuite(t *testing.T) {

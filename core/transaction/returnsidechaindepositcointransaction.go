@@ -103,6 +103,14 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialContextCheck() (result el
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
+	if t.parameters.BlockHeight >= t.parameters.Config.CrossChainUTXORestrictionHeight &&
+		hasCrossChainUTXO(t.references) {
+		if err := checkCrossChainArbiterPrograms(t, t.parameters.BlockHeight,
+			t.parameters.Config); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+	}
+
 	// check outputs
 	fee := t.parameters.Config.ReturnDepositCoinFee
 	for _, o := range t.Outputs() {

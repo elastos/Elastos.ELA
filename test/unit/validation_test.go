@@ -685,6 +685,23 @@ func TestRunPrograms(t *testing.T) {
 	assert.Error(t, err, "[RunProgram] passed with random no parameter")
 }
 
+func TestRunProgramsAllowsDynamicCrossChainWitness(t *testing.T) {
+	tx := buildTx()
+	data := getData(tx)
+	account := newMultiAccount(3, t)
+	code := append([]byte(nil), account.RedeemScript()...)
+	code[len(code)-1] = common.CROSSCHAIN
+	signature, err := account.Sign(data)
+	assert.NoError(t, err)
+
+	programHash := common.Uint168{}
+	programHash[0] = byte(contract.PrefixCrossChain)
+	err = blockchain.RunPrograms(data, []common.Uint168{programHash},
+		[]*program.Program{{Code: code, Parameter: signature}})
+
+	assert.NoError(t, err)
+}
+
 func TestSchnorrPxPyToPublic(t *testing.T) {
 	nA := newAccount(t)
 	initialPublicKey, _ := nA.public.EncodePoint(true)

@@ -298,18 +298,34 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 	}
 
-	err := checkSchnorrWithdrawFromSidechain(t, pld)
+	validateSignerIndexes := currentHeight >= t.parameters.Config.CrossChainUTXORestrictionHeight
+	err := checkSchnorrWithdrawFromSidechain(t, pld, validateSignerIndexes)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
+func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction,
+	pld *payload.WithdrawFromSideChain, validateSignerIndexes bool) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
 	arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
+	var signerIndexes map[uint8]struct{}
+	if validateSignerIndexes {
+		signerIndexes = make(map[uint8]struct{}, len(pld.Signers))
+	}
 	for _, index := range pld.Signers {
+		if validateSignerIndexes {
+			if int(index) >= len(arbiters) {
+				return errors.New("invalid schnorr withdraw signer index")
+			}
+			if _, exists := signerIndexes[index]; exists {
+				return errors.New("duplicate schnorr withdraw signer index")
+			}
+			signerIndexes[index] = struct{}{}
+		}
+
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)

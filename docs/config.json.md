@@ -12,8 +12,7 @@ Just modify the `ActiveNet` parameter in the `config.json` file.
   }
 }
 ```
-Default config for `testnet`
-- Peer-to-Peer network connect to ELA `testnet`.
+Example configuration
 
 ## Inline Explanation
 
@@ -73,6 +72,14 @@ Default config for `testnet`
     "NewELAIssuanceHeight": 919800,             // New ELA Issuance Height
     "SmallCrossTransferThreshold": 100000000,   // Small cross chain transaction threshold
     "ReturnDepositCoinFee": 100,                // Return Deposit Fee
+    "CrossChainUTXOFreezeHeight": 2256110,      // Mainnet emergency freeze; local config and CLI values are ignored.
+    "CrossChainUTXORestrictionHeight": 2256724, // Mainnet authorized-bridge activation; local config and CLI values are ignored.
+    "FrozenAddresses": [                        // Addresses frozen after DisableStartHeight (no spend from / send to). Mainnet list is enforced.
+      {
+        "Address": "EfduuvdDcAgif8njgXNJUfsBumQf9yYP72",
+        "DisableStartHeight": 2256110
+      }
+    ],
     "NewCrossChainStartHeight": 1032840,        // New Cross Chain Start Height
     "ReturnCrossChainCoinStartHeight": 1032840, // Return Cross Chain Coin Start Height
     "ProhibitTransferToDIDHeight": 1032840,     // Prohibit Transfer To DID Height

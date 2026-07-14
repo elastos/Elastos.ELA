@@ -42,7 +42,7 @@ func (s *txValidatorTestSuite) TestTransferCrossChainAssetTransaction() {
 		})
 		txn.SetOutputs([]*common2.Output{
 			{
-				ProgramHash: *randomUint168(),
+				ProgramHash: nonCrossChainProgramHash(),
 			},
 		})
 		err, _ = txn.SpecialContextCheck()
@@ -115,7 +115,7 @@ func (s *txValidatorTestSuite) TestTransferCrossChainAssetTransaction() {
 
 		txn.SetOutputs([]*common2.Output{
 			{
-				ProgramHash: *randomUint168(),
+				ProgramHash: nonCrossChainProgramHash(),
 				Type:        common2.OTCrossChain,
 			},
 		})
@@ -165,4 +165,11 @@ func (s *txValidatorTestSuite) TestTransferCrossChainAssetTransaction() {
 		s.NoError(err)
 	}
 
+}
+
+// nonCrossChainProgramHash prevents negative tests from accidentally using an X address.
+func nonCrossChainProgramHash() common.Uint168 {
+	programHash := *randomUint168()
+	programHash[0] = byte(contract.PrefixStandard)
+	return programHash
 }

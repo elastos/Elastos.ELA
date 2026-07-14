@@ -247,6 +247,7 @@ func GetDefaultParams() *Configuration {
 		NewELAIssuanceHeight:            919800,  // 3.5 * 365 * 720
 		SmallCrossTransferThreshold:     100000000,
 		ReturnDepositCoinFee:            100,
+		CrossChainUTXORestrictionHeight: math.MaxUint32,
 		NewCrossChainStartHeight:        1032840,
 		ReturnCrossChainCoinStartHeight: 1032840,
 		ProhibitTransferToDIDHeight:     1032840,
@@ -644,6 +645,9 @@ type Configuration struct {
 	SmallCrossTransferThreshold common.Fixed64 `screw:"--smallcrosstransferthreshold" usage:"defines the minimum amount of transfer consider as small cross transfer"`
 	// ReturnDepositCoinFee indicates the fee the
 	ReturnDepositCoinFee common.Fixed64 `screw:"--returndepositcoinfee" usage:"defines the fee of return cross chain deposit coin"`
+	// CrossChainUTXORestrictionHeight defines the height at which only
+	// authorized cross chain transactions may spend CrossChain UTXOs.
+	CrossChainUTXORestrictionHeight uint32 `screw:"--crosschainutxorestrictionheight" usage:"defines the height to restrict CrossChain UTXO spending"`
 	// NewCrossChainStartHeight defines the height of new cross chain transaction started.
 	NewCrossChainStartHeight uint32 `screw:"--newcrosschainstartheight" usage:"defines the height to only support TransferCrossChainAsset v1"`
 	// ReturnCrossChainCoinStartHeight indicates the start height of ReturnCroossChainDepositCoin transaction

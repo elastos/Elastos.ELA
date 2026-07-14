@@ -235,40 +235,8 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 	}
 
-	height := t.parameters.BlockHeight
-	for _, p := range t.Programs() {
-		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
-		if err != nil {
-			return err
-		}
-		var arbiters []*state.ArbiterInfo
-		var minCount uint32
-		if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
-			arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-			minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
-		} else {
-			arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-			minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
-		}
-		var arbitersCount int
-		for _, c := range arbiters {
-			if !c.IsNormal {
-				continue
-			}
-			arbitersCount++
-		}
-		if n != arbitersCount {
-			return errors.New("invalid arbiters total count in code")
-		}
-		if m < int(minCount) {
-			return errors.New("invalid arbiters sign count in code")
-		}
-		if err := checkCrossChainArbitrators(publicKeys); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return checkCrossChainArbiterPrograms(t, t.parameters.BlockHeight,
+		t.parameters.Config)
 }
 
 func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV2() error {
@@ -298,18 +266,35 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 	}
 
-	err := checkSchnorrWithdrawFromSidechain(t, pld)
+	// Preserve legacy V2 replay before the coordinated CrossChain UTXO activation.
+	validateDuplicateSignerIndexes := currentHeight >= t.parameters.Config.CrossChainUTXORestrictionHeight
+	err := checkSchnorrWithdrawFromSidechain(t, pld, validateDuplicateSignerIndexes)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
+func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction,
+	pld *payload.WithdrawFromSideChain, validateDuplicateSignerIndexes bool) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
 	arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
+	var signerIndexes map[uint8]struct{}
+	if validateDuplicateSignerIndexes {
+		signerIndexes = make(map[uint8]struct{}, len(pld.Signers))
+	}
 	for _, index := range pld.Signers {
+		if int(index) >= len(arbiters) {
+			return errors.New("invalid schnorr withdraw signer index")
+		}
+		if validateDuplicateSignerIndexes {
+			if _, exists := signerIndexes[index]; exists {
+				return errors.New("duplicate schnorr withdraw signer index")
+			}
+			signerIndexes[index] = struct{}{}
+		}
+
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)

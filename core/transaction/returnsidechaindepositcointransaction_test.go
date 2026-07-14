@@ -10,6 +10,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -17,9 +18,11 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -189,6 +192,74 @@ func (s *txValidatorTestSuite) TestReturnSideChainDepositCoinTransaction() {
 		s.EqualError(err,
 			"transaction validate error: payload content invalid:invalid deposit tx:"+hex.EncodeToString(depositTx.Bytes()))
 	}
+}
+
+func (s *txValidatorSpecialTxTestSuite) TestReturnSideChainDepositCoinCrossChainAuthorization() {
+	chainParams := *s.Chain.GetParams()
+	chainParams.CrossChainUTXORestrictionHeight = 1
+	chainParams.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32
+	chainParams.CRConfiguration.CRAgreementCount = uint32(s.arbitrators.MajorityCount)
+
+	originalCRCArbiters := s.arbitrators.CRCArbitrators
+	s.arbitrators.CRCArbitrators = s.arbitrators.CurrentArbitrators
+	defer func() {
+		s.arbitrators.CRCArbitrators = originalCRCArbiters
+	}()
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnSideChainDepositCoin,
+		payload.ReturnSideChainDepositCoinVersion,
+		&payload.ReturnSideChainDepositCoin{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{{Code: s.crossChainArbiterScript(s.arbitrators.MajorityCount,
+			len(s.arbitrators.GetCrossChainArbiters()))}},
+	)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&TransactionParameters{
+		Transaction: txn,
+		BlockHeight: 1,
+		Config:      &chainParams,
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(crossChainUTXOReferences(contract.PrefixCrossChain))
+
+	err, _ := txn.SpecialContextCheck()
+	s.NoError(err)
+
+	txn.SetPrograms([]*program.Program{{Code: s.crossChainArbiterScript(1, 2)}})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid arbiters total count in code")
+
+	publicKey, decodeErr := crypto.DecodePoint(s.arbitrators.GetCrossChainArbiters()[0].NodePublicKey)
+	s.Require().NoError(decodeErr)
+	standardContract, contractErr := contract.CreateStandardContract(publicKey)
+	s.Require().NoError(contractErr)
+	txn.SetReferences(map[*common2.Input]common2.Output{
+		&common2.Input{}: {ProgramHash: *standardContract.ToProgramHash()},
+	})
+	txn.SetPrograms([]*program.Program{{Code: standardContract.Code}})
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+}
+
+func (s *txValidatorSpecialTxTestSuite) crossChainArbiterScript(signers, publicKeyCount int) []byte {
+	publicKeys := make([]*crypto.PublicKey, 0, publicKeyCount)
+	for _, arbiter := range s.arbitrators.GetCrossChainArbiters()[:publicKeyCount] {
+		publicKey, err := crypto.DecodePoint(arbiter.NodePublicKey)
+		s.Require().NoError(err)
+		publicKeys = append(publicKeys, publicKey)
+	}
+
+	code, err := contract.CreateMultiSigRedeemScript(signers, publicKeys)
+	s.Require().NoError(err)
+	code[len(code)-1] = common.CROSSCHAIN
+
+	return code
 }
 
 // loadBlockDB loads (or creates when needed) the block database taking into

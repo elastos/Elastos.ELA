@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"math"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -43,4 +45,45 @@ func (s *txValidatorTestSuite) TestCheckDuplicateSidechainTx() {
 	// 2. Run CheckDuplicateSidechainTx
 	err := blockchain.CheckDuplicateSidechainTx(txn)
 	s.EqualError(err, "Duplicate sidechain tx detected in a transaction")
+}
+
+func (s *txValidatorSpecialTxTestSuite) TestSchnorrWithdrawFromSidechainRejectsInvalidSigners() {
+	chainParams := *s.Chain.GetParams()
+	chainParams.CrossChainUTXORestrictionHeight = math.MaxUint32
+	chainParams.CRConfiguration.MemberCount = 1
+	chainParams.CRConfiguration.CRClaimDPOSNodeStartHeight = 1
+
+	withdrawPayload := &payload.WithdrawFromSideChain{Signers: []uint8{0xff}}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.WithdrawFromSideChain,
+		payload.WithdrawFromSideChainVersionV2,
+		withdrawPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&TransactionParameters{
+		Transaction: txn,
+		BlockHeight: 0,
+		Config:      &chainParams,
+		BlockChain:  s.Chain,
+	})
+
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid schnorr withdraw signer index")
+
+	// Preserve the pre-activation validation behavior for historical replay.
+	withdrawPayload.Signers = []uint8{0, 0}
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+
+	chainParams.CrossChainUTXORestrictionHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:duplicate schnorr withdraw signer index")
 }

@@ -106,6 +106,17 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	}
 	t.references = references
 
+	if err := checkTransactionCrossChainUTXO(
+		t.parameters.Transaction,
+		references,
+		t.parameters.BlockHeight,
+		t.parameters.Config.CrossChainUTXOFreezeHeight,
+		t.parameters.Config.CrossChainUTXORestrictionHeight,
+	); err != nil {
+		log.Warn("[CheckTransactionCrossChainUTXO],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	}
+
 	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
 		if !t.parameters.Transaction.IsAllowedInPOWConsensus() {
 			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.parameters.Transaction.TxType().Name())
@@ -647,6 +658,55 @@ func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*com
 	return nil
 }
 
+func checkTransactionCrossChainUTXO(txn interfaces.Transaction,
+	references map[*common2.Input]common2.Output, blockHeight, freezeHeight,
+	restrictionHeight uint32) error {
+	if blockHeight < freezeHeight || !hasCrossChainUTXO(references) {
+		return nil
+	}
+
+	if blockHeight < restrictionHeight {
+		return errors.New("CrossChain UTXO spending is temporarily frozen")
+	}
+
+	if txn.IsWithdrawFromSideChainTx() {
+		switch txn.PayloadVersion() {
+		case payload.WithdrawFromSideChainVersion,
+			payload.WithdrawFromSideChainVersionV1,
+			payload.WithdrawFromSideChainVersionV2:
+			return nil
+		default:
+			return errors.New("unsupported WithdrawFromSideChain payload version cannot spend CrossChain UTXOs")
+		}
+	}
+
+	if !txn.IsReturnSideChainDepositCoinTx() {
+		return errors.New("only WithdrawFromSideChain and ReturnSideChainDepositCoin can spend CrossChain UTXOs")
+	}
+
+	if txn.PayloadVersion() != payload.ReturnSideChainDepositCoinVersion {
+		return errors.New("only legacy ReturnSideChainDepositCoin can spend CrossChain UTXOs")
+	}
+
+	for _, output := range references {
+		if contract.GetPrefixType(output.ProgramHash) != contract.PrefixCrossChain {
+			return errors.New("ReturnSideChainDepositCoin can only spend CrossChain UTXOs")
+		}
+	}
+
+	return nil
+}
+
+func hasCrossChainUTXO(references map[*common2.Input]common2.Output) bool {
+	for _, output := range references {
+		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixCrossChain {
+			return true
+		}
+	}
+
+	return false
+}
+
 func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
 	for _, output := range references {
 		if output.ProgramHash == *config.DestroyELAProgramHash {
@@ -656,7 +716,7 @@ func checkDestructionAddress(references map[*common2.Input]common2.Output) error
 	return nil
 }
 
-//tx interfaces.Transaction,
+// tx interfaces.Transaction,
 func (t *DefaultChecker) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
 	log.Debug("DefaultChecker checkTransactionFee begin")
 	txn := t.parameters.Transaction

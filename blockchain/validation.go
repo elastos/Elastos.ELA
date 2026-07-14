@@ -28,13 +28,6 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		programHash := programHashes[i]
 		prefixType := contract.GetPrefixType(programHash)
 
-		codeHash := common.ToCodeHash(program.Code)
-		ownerHash := programHash.ToCodeHash()
-
-		if !ownerHash.IsEqual(*codeHash) {
-			return errors.New("the data hashes is different with corresponding program code")
-		}
-
 		// TODO: this implementation will be deprecated
 		if prefixType == contract.PrefixCrossChain {
 			if contract.IsSchnorr(program.Code) {
@@ -46,7 +39,16 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 					return err
 				}
 			}
-		} else if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
+			continue
+		}
+
+		codeHash := common.ToCodeHash(program.Code)
+		ownerHash := programHash.ToCodeHash()
+
+		if !ownerHash.IsEqual(*codeHash) {
+			return errors.New("the data hashes is different with corresponding program code")
+		}
+		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())

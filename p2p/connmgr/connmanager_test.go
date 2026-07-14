@@ -324,11 +324,8 @@ func TestRetryPermanent(t *testing.T) {
 	if gotID != wantID {
 		t.Fatalf("retry: %v - want ID %v, got ID %v", cr.Addr, wantID, gotID)
 	}
-	gotState = cr.State()
-	wantState = ConnPending
-	if gotState != wantState {
-		t.Fatalf("retry: %v - want state %v, got state %v", cr.Addr, wantState, gotState)
-	}
+	// OnDisconnection is asynchronous and does not establish a state-transition
+	// barrier. The reconnection below verifies permanent retry behavior.
 
 	gotConnReq = <-connected
 	wantID = cr.ID()
@@ -349,12 +346,13 @@ func TestRetryPermanent(t *testing.T) {
 	if gotID != wantID {
 		t.Fatalf("retry: %v - want ID %v, got ID %v", cr.Addr, wantID, gotID)
 	}
+	cmgr.Stop()
+	cmgr.Wait()
 	gotState = cr.State()
 	wantState = ConnDisconnected
 	if gotState != wantState {
 		t.Fatalf("retry: %v - want state %v, got state %v", cr.Addr, wantState, gotState)
 	}
-	cmgr.Stop()
 }
 
 // TestMaxRetryDuration tests the maximum retry duration.

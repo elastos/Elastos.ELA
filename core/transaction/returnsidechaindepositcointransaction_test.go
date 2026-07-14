@@ -6,10 +6,18 @@
 package transaction
 
 import (
+	"bytes"
 	"encoding/hex"
+	"math"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/btcsuite/btcd/wire"
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -17,12 +25,10 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 const (
@@ -188,6 +194,152 @@ func (s *txValidatorTestSuite) TestReturnSideChainDepositCoinTransaction() {
 		err, _ = txn.SpecialContextCheck()
 		s.EqualError(err,
 			"transaction validate error: payload content invalid:invalid deposit tx:"+hex.EncodeToString(depositTx.Bytes()))
+	}
+}
+
+// TestReturnSideChainDepositCoinCrossChainAuthorization verifies Type-81/V0
+// remains unchanged before H and requires the current arbiter witness at H.
+func (s *txValidatorSpecialTxTestSuite) TestReturnSideChainDepositCoinCrossChainAuthorization() {
+	chainParams := *s.Chain.GetParams()
+	chainParams.CrossChainUTXOFreezeHeight = 0
+	chainParams.CrossChainUTXORestrictionHeight = 1
+	chainParams.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32
+	chainParams.CRConfiguration.CRAgreementCount = uint32(s.arbitrators.MajorityCount)
+
+	originalCRCArbiters := s.arbitrators.CRCArbitrators
+	s.arbitrators.CRCArbitrators = s.arbitrators.CurrentArbitrators
+	defer func() {
+		s.arbitrators.CRCArbitrators = originalCRCArbiters
+	}()
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnSideChainDepositCoin,
+		payload.ReturnSideChainDepositCoinVersion,
+		&payload.ReturnSideChainDepositCoin{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		nil,
+	)
+	txn = CreateTransactionByType(txn, s.Chain)
+	parameters := &TransactionParameters{
+		Transaction: txn,
+		BlockHeight: 0,
+		Config:      &chainParams,
+		BlockChain:  s.Chain,
+	}
+	txn.SetParameters(parameters)
+	txn.SetReferences(crossChainUTXOReferences(contract.PrefixCrossChain))
+
+	err, _ := txn.SpecialContextCheck()
+	s.NoError(err)
+
+	parameters.BlockHeight = 1
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:CrossChain transaction has no programs")
+
+	txn.SetPrograms([]*program.Program{{Code: s.crossChainArbiterScript(
+		s.arbitrators.MajorityCount, len(s.arbitrators.GetCrossChainArbiters()))}})
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+	s.signCrossChainProgram(txn, txn.Programs()[0])
+	s.NoError(checkTransactionSignature(txn,
+		crossChainUTXOReferences(contract.PrefixCrossChain)))
+
+	txn.SetPrograms([]*program.Program{{Code: s.crossChainArbiterScript(1, 2)}})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid arbiters total count in code")
+}
+
+// TestReturnSideChainDepositCoinV0ArbiterFixture verifies an Arbiter-shaped
+// refund completes sanity and contextual validation at H.
+func (s *txValidatorSpecialTxTestSuite) TestReturnSideChainDepositCoinV0ArbiterFixture() {
+	fixture := s.createArbiterCrossChainUTXOFixture()
+	blockHeight := fixture.transactionHeight + 1
+	chainParams := *s.Chain.GetParams()
+	chainParams.CrossChainUTXOFreezeHeight = 0
+	chainParams.CrossChainUTXORestrictionHeight = blockHeight
+	chainParams.ReturnCrossChainCoinStartHeight = 0
+	chainParams.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32
+	chainParams.CRConfiguration.CRAgreementCount = uint32(s.arbitrators.MajorityCount)
+
+	originalCRCArbiters := s.arbitrators.CRCArbitrators
+	s.arbitrators.CRCArbitrators = s.arbitrators.CurrentArbitrators
+	defer func() {
+		s.arbitrators.CRCArbitrators = originalCRCArbiters
+	}()
+
+	witness := &program.Program{Code: s.crossChainArbiterScript(
+		s.arbitrators.MajorityCount, len(s.arbitrators.GetCrossChainArbiters()))}
+	nonce := common2.NewAttribute(common2.Nonce, []byte("crosschain-utxo-return"))
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnSideChainDepositCoin,
+		payload.ReturnSideChainDepositCoinVersion,
+		&payload.ReturnSideChainDepositCoin{},
+		[]*common2.Attribute{&nonce},
+		[]*common2.Input{fixture.depositInput},
+		[]*common2.Output{{
+			AssetID:     core.ELAAssetID,
+			Value:       fixture.reserveAmount - chainParams.ReturnDepositCoinFee,
+			ProgramHash: fixture.payerProgramHash,
+			Type:        common2.OTReturnSideChainDepositCoin,
+			Payload: &outputpayload.ReturnSideChainDeposit{
+				Version:                outputpayload.ReturnSideChainDepositVersion,
+				GenesisBlockAddress:    fixture.bankAddress,
+				DepositTransactionHash: fixture.depositTxHash,
+			},
+		}},
+		0,
+		[]*program.Program{witness},
+	)
+	txn = CreateTransactionByType(txn, s.Chain)
+	parameters := &TransactionParameters{
+		Transaction: txn,
+		BlockHeight: blockHeight,
+		Config:      &chainParams,
+		BlockChain:  s.Chain,
+	}
+	txn.SetParameters(parameters)
+	s.signCrossChainProgram(txn, txn.Programs()[0])
+
+	cleanup := s.prepareArbiterCrossChainContext(&chainParams)
+	defer cleanup()
+
+	s.NoError(txn.SanityCheck(parameters))
+	_, err := txn.ContextCheck(parameters)
+	s.NoError(err)
+}
+
+func (s *txValidatorSpecialTxTestSuite) crossChainArbiterScript(signers, publicKeyCount int) []byte {
+	publicKeys := make([]*crypto.PublicKey, 0, publicKeyCount)
+	for _, arbiter := range s.arbitrators.GetCrossChainArbiters()[:publicKeyCount] {
+		publicKey, err := crypto.DecodePoint(arbiter.NodePublicKey)
+		s.Require().NoError(err)
+		publicKeys = append(publicKeys, publicKey)
+	}
+
+	code, err := contract.CreateMultiSigRedeemScript(signers, publicKeys)
+	s.Require().NoError(err)
+	code[len(code)-1] = common.CROSSCHAIN
+
+	return code
+}
+
+func (s *txValidatorSpecialTxTestSuite) signCrossChainProgram(txn interfaces.Transaction,
+	witness *program.Program) {
+	unsignedTransaction := new(bytes.Buffer)
+	txn.SerializeUnsigned(unsignedTransaction)
+	for index := 0; index < s.arbitrators.MajorityCount; index++ {
+		signature, err := crypto.Sign(s.arbitratorsPriKeys[index], unsignedTransaction.Bytes())
+		s.Require().NoError(err)
+		witness.Parameter, err = crypto.AppendSignature(index, signature,
+			unsignedTransaction.Bytes(), witness.Code, witness.Parameter)
+		s.Require().NoError(err)
 	}
 }
 

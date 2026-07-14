@@ -29,7 +29,31 @@ const (
 	// DisabledCrossChainUTXORestrictionHeight keeps the emergency policy
 	// inactive on networks that have not adopted a coordinated activation.
 	DisabledCrossChainUTXORestrictionHeight uint32 = math.MaxUint32
+	// ExploitIntermediateFrozenAddress is the mainchain intermediate address
+	// that received funds from the CrossChain UTXO exploit.
+	ExploitIntermediateFrozenAddress = "EfduuvdDcAgif8njgXNJUfsBumQf9yYP72"
 )
+
+// FrozenAddress defines an address that cannot be spent from or sent to after
+// DisableStartHeight.
+type FrozenAddress struct {
+	Address            string `json:"Address"`
+	DisableStartHeight uint32 `json:"DisableStartHeight"`
+	// ProgramHash is resolved from Address during Sterilize.
+	ProgramHash *common.Uint168 `json:"-"`
+}
+
+// MainNetFrozenAddresses returns the coordinated mainnet frozen-address list.
+// DisableStartHeight uses the emergency freeze height so funds cannot move
+// during the temporary CrossChain UTXO freeze window.
+func MainNetFrozenAddresses() []FrozenAddress {
+	return []FrozenAddress{
+		{
+			Address:            ExploitIntermediateFrozenAddress,
+			DisableStartHeight: MainNetCrossChainUTXOFreezeHeight,
+		},
+	}
+}
 
 type Config struct {
 	*Configuration `json:"Configuration"`
@@ -258,6 +282,7 @@ func GetDefaultParams() *Configuration {
 		ReturnDepositCoinFee:            100,
 		CrossChainUTXOFreezeHeight:      MainNetCrossChainUTXOFreezeHeight,
 		CrossChainUTXORestrictionHeight: MainNetCrossChainUTXORestrictionHeight,
+		FrozenAddresses:                 MainNetFrozenAddresses(),
 		NewCrossChainStartHeight:        1032840,
 		ReturnCrossChainCoinStartHeight: 1032840,
 		ProhibitTransferToDIDHeight:     1032840,
@@ -387,6 +412,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ReturnDepositCoinFee = 100
 	p.CrossChainUTXOFreezeHeight = DisabledCrossChainUTXORestrictionHeight
 	p.CrossChainUTXORestrictionHeight = DisabledCrossChainUTXORestrictionHeight
+	p.FrozenAddresses = nil
 	p.NewCrossChainStartHeight = 807000
 	p.ReturnCrossChainCoinStartHeight = 807000
 	p.CRConfiguration.CRCProposalDraftDataStartHeight = 807000
@@ -518,6 +544,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ReturnDepositCoinFee = 100
 	p.CrossChainUTXOFreezeHeight = DisabledCrossChainUTXORestrictionHeight
 	p.CrossChainUTXORestrictionHeight = DisabledCrossChainUTXORestrictionHeight
+	p.FrozenAddresses = nil
 	p.NewCrossChainStartHeight = 730000
 	p.ReturnCrossChainCoinStartHeight = 730000
 	p.CRConfiguration.CRCProposalDraftDataStartHeight = 730000
@@ -667,6 +694,10 @@ type Configuration struct {
 	// authorized bridge transactions may spend CrossChain UTXOs. Its mainnet
 	// value is enforced after config-file and command-line parsing.
 	CrossChainUTXORestrictionHeight uint32
+	// FrozenAddresses lists addresses that cannot be spent from or sent to
+	// after each entry's DisableStartHeight. Mainnet values are enforced after
+	// config-file and CLI parsing.
+	FrozenAddresses []FrozenAddress `json:"FrozenAddresses"`
 	// NewCrossChainStartHeight defines the height of new cross chain transaction started.
 	NewCrossChainStartHeight uint32 `screw:"--newcrosschainstartheight" usage:"defines the height to only support TransferCrossChainAsset v1"`
 	// ReturnCrossChainCoinStartHeight indicates the start height of ReturnCroossChainDepositCoin transaction
@@ -930,6 +961,16 @@ func (p *Configuration) Sterilize() *Configuration {
 	if p.DPoSConfiguration.DPoSV2RewardAccumulateAddress != "" {
 		p.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash, _ = common.Uint168FromAddress(
 			p.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
+	}
+	for i := range p.FrozenAddresses {
+		if p.FrozenAddresses[i].Address == "" {
+			continue
+		}
+		programHash, err := common.Uint168FromAddress(p.FrozenAddresses[i].Address)
+		if err != nil {
+			continue
+		}
+		p.FrozenAddresses[i].ProgramHash = programHash
 	}
 	p.GenesisBlock = core.GenesisBlock(*p.FoundationProgramHash)
 	p.DPoSConfiguration.SignTolerance = p.DPoSConfiguration.SignTolerance * time.Second

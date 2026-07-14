@@ -117,6 +117,16 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
+	if err := checkFrozenAddresses(
+		t.parameters.Transaction,
+		references,
+		t.parameters.BlockHeight,
+		t.parameters.Config.FrozenAddresses,
+	); err != nil {
+		log.Warn("[CheckFrozenAddresses],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	}
+
 	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
 		if !t.parameters.Transaction.IsAllowedInPOWConsensus() {
 			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.parameters.Transaction.TxType().Name())
@@ -713,6 +723,33 @@ func checkDestructionAddress(references map[*common2.Input]common2.Output) error
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
+	return nil
+}
+
+// checkFrozenAddresses freezes configured addresses after each entry's
+// DisableStartHeight: no spends from them and no sends to them. Historical
+// transactions before each start height remain syncable.
+func checkFrozenAddresses(txn interfaces.Transaction,
+	references map[*common2.Input]common2.Output, blockHeight uint32,
+	frozenAddresses []config.FrozenAddress) error {
+	for _, frozen := range frozenAddresses {
+		if frozen.ProgramHash == nil || blockHeight < frozen.DisableStartHeight {
+			continue
+		}
+
+		for _, output := range references {
+			if output.ProgramHash.IsEqual(*frozen.ProgramHash) {
+				return fmt.Errorf("cannot use utxo from the frozen address %s", frozen.Address)
+			}
+		}
+
+		for _, output := range txn.Outputs() {
+			if output.ProgramHash.IsEqual(*frozen.ProgramHash) {
+				return fmt.Errorf("cannot send to the frozen address %s", frozen.Address)
+			}
+		}
+	}
+
 	return nil
 }
 

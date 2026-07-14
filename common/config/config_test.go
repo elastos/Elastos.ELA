@@ -12,6 +12,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFrozenAddressesUseReadableAddressDefaults(t *testing.T) {
+	mainNet := GetDefaultParams()
+	assert.Equal(t, []FrozenAddress{{
+		Address:            ExploitIntermediateFrozenAddress,
+		DisableStartHeight: MainNetCrossChainUTXOFreezeHeight,
+	}}, mainNet.FrozenAddresses)
+
+	assert.Nil(t, GetDefaultParams().TestNet().FrozenAddresses)
+	assert.Nil(t, GetDefaultParams().RegNet().FrozenAddresses)
+
+	mainNet.FrozenAddresses = MainNetFrozenAddresses()
+	for i := range mainNet.FrozenAddresses {
+		programHash, err := common.Uint168FromAddress(mainNet.FrozenAddresses[i].Address)
+		assert.NoError(t, err)
+		mainNet.FrozenAddresses[i].ProgramHash = programHash
+	}
+	assert.Equal(t, ExploitIntermediateFrozenAddress, mainNet.FrozenAddresses[0].Address)
+	assert.NotNil(t, mainNet.FrozenAddresses[0].ProgramHash)
+	addr, err := mainNet.FrozenAddresses[0].ProgramHash.ToAddress()
+	assert.NoError(t, err)
+	assert.Equal(t, ExploitIntermediateFrozenAddress, addr)
+}
+
 func TestStringUint(t *testing.T) {
 	//
 	mainNetFoundation := "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"

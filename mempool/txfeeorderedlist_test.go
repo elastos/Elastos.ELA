@@ -51,10 +51,10 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	protoTxSize := protoTx.GetSize()
 
 	orderedList := newTxFeeOrderedList(onPopBack, uint64(protoTxSize*10))
-	for i := 0; i < 10; i++ {
+	initialFees := []common.Fixed64{100, 90, 80, 70, 60, 50, 40, 30, 20, 10}
+	for _, fee := range initialFees {
 		tx := protoTx
-		protoTx.SetFee(100)
-		tx.SetFee(tx.Fee() - common.Fixed64(rand.Int63n(100)))
+		tx.SetFee(fee)
 		tx.SetAttributes([]*common2.Attribute{
 			{
 				Usage: common2.Nonce,

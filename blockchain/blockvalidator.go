@@ -8,6 +8,7 @@ package blockchain
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -247,14 +248,21 @@ func CheckDuplicateTx(block *Block) error {
 	return nil
 }
 
-func RecordCRCProposalAmount(usedAmount *Fixed64, txn interfaces.Transaction) {
+// RecordCRCProposalAmount accumulates proposal budgets without wrapping.
+func RecordCRCProposalAmount(usedAmount *Fixed64,
+	txn interfaces.Transaction) error {
 	proposal, ok := txn.Payload().(*payload.CRCProposal)
 	if !ok {
-		return
+		return nil
 	}
 	for _, b := range proposal.Budgets {
-		*usedAmount += b.Amount
+		amount, err := AddFixed64(*usedAmount, b.Amount)
+		if err != nil {
+			return err
+		}
+		*usedAmount = amount
 	}
+	return nil
 }
 
 func (b *BlockChain) checkTxsContext(block *Block) error {
@@ -270,13 +278,26 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 		}
 
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(block.Transactions[i], core.ELAAssetID, references)
+		fee, err := GetTxFee(block.Transactions[i], core.ELAAssetID, references)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrBlockValidation, err)
+		}
+		totalTxFee, err = AddFixed64(totalTxFee, fee)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrBlockValidation, err)
+		}
 		if block.Transactions[i].IsCRCProposalTx() {
-			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
+			if err := RecordCRCProposalAmount(&proposalsUsedAmount,
+				block.Transactions[i]); err != nil {
+				return elaerr.Simple(elaerr.ErrBlockValidation, err)
+			}
 		}
 	}
-	dposReward := b.GetBlockDPOSReward(block)
-	err := b.checkCoinbaseTransactionContext(block.Height,
+	dposReward, err := b.GetBlockDPOSReward(block)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrBlockValidation, err)
+	}
+	err = b.checkCoinbaseTransactionContext(block.Height,
 		block.Transactions[0], totalTxFee, dposReward)
 	if err != nil {
 		buf := new(bytes.Buffer)
@@ -433,70 +454,133 @@ func IsFinalizedTransaction(msgTx interfaces.Transaction, blockHeight uint32) bo
 	return true
 }
 
-func GetTxFee(tx interfaces.Transaction, assetId Uint256, references map[*common.Input]common.Output) Fixed64 {
-	feeMap, err := GetTxFeeMap(tx, references)
-	if err != nil {
-		return 0
+// GetTransactionFee returns the checked fee across all transaction assets.
+func GetTransactionFee(tx interfaces.Transaction,
+	references map[*common.Input]common.Output) (Fixed64, error) {
+	var inputValue Fixed64
+	var outputValue Fixed64
+	for _, output := range references {
+		if output.Value < 0 {
+			return 0, errors.New("transaction input contains negative value")
+		}
+		var err error
+		inputValue, err = AddFixed64(inputValue, output.Value)
+		if err != nil {
+			return 0, fmt.Errorf("transaction input amount: %w", err)
+		}
+	}
+	for _, output := range tx.Outputs() {
+		if output.Value < 0 {
+			return 0, errors.New("transaction output contains negative value")
+		}
+		var err error
+		outputValue, err = AddFixed64(outputValue, output.Value)
+		if err != nil {
+			return 0, fmt.Errorf("transaction output amount: %w", err)
+		}
 	}
 
-	return feeMap[assetId]
+	fee, err := SubtractFixed64(inputValue, outputValue)
+	if err != nil {
+		return 0, fmt.Errorf("transaction fee amount: %w", err)
+	}
+	return fee, nil
 }
 
-func GetTxFeeMap(tx interfaces.Transaction, references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
+// GetTxFee returns the checked transaction fee for one asset.
+func GetTxFee(tx interfaces.Transaction, assetID Uint256,
+	references map[*common.Input]common.Output) (Fixed64, error) {
+	feeMap, err := GetTxFeeMap(tx, references)
+	if err != nil {
+		return 0, err
+	}
+
+	return feeMap[assetID], nil
+}
+
+// GetTxFeeMap returns checked fees grouped by asset.
+func GetTxFeeMap(tx interfaces.Transaction,
+	references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
 	feeMap := make(map[Uint256]Fixed64)
 	var inputs = make(map[Uint256]Fixed64)
 	var outputs = make(map[Uint256]Fixed64)
 
 	for _, output := range references {
-		amount, ok := inputs[output.AssetID]
-		if ok {
-			inputs[output.AssetID] = amount + output.Value
-		} else {
-			inputs[output.AssetID] = output.Value
+		if output.Value < 0 {
+			return nil, errors.New("transaction input contains negative value")
 		}
+		amount, err := AddFixed64(inputs[output.AssetID], output.Value)
+		if err != nil {
+			return nil, fmt.Errorf("transaction input amount: %w", err)
+		}
+		inputs[output.AssetID] = amount
 	}
 	for _, v := range tx.Outputs() {
-		amount, ok := outputs[v.AssetID]
-		if ok {
-			outputs[v.AssetID] = amount + v.Value
-		} else {
-			outputs[v.AssetID] = v.Value
+		if v.Value < 0 {
+			return nil, errors.New("transaction output contains negative value")
 		}
+		amount, err := AddFixed64(outputs[v.AssetID], v.Value)
+		if err != nil {
+			return nil, fmt.Errorf("transaction output amount: %w", err)
+		}
+		outputs[v.AssetID] = amount
 	}
 
 	//calc the balance of input vs output
 	for outputAssetid, outputValue := range outputs {
-		if inputValue, ok := inputs[outputAssetid]; ok {
-			feeMap[outputAssetid] = inputValue - outputValue
-		} else {
-			feeMap[outputAssetid] -= outputValue
+		fee, err := SubtractFixed64(inputs[outputAssetid], outputValue)
+		if err != nil {
+			return nil, fmt.Errorf("transaction fee amount: %w", err)
 		}
+		feeMap[outputAssetid] = fee
 	}
 	for inputAssetId, inputValue := range inputs {
 		if _, exist := feeMap[inputAssetId]; !exist {
-			feeMap[inputAssetId] += inputValue
+			feeMap[inputAssetId] = inputValue
 		}
 	}
 
 	return feeMap, nil
 }
 
-func (b *BlockChain) GetBlockDPOSReward(block *Block) Fixed64 {
+// GetBlockDPOSReward calculates the DPoS share of block fees and issuance.
+func (b *BlockChain) GetBlockDPOSReward(block *Block) (Fixed64, error) {
 	totalTxFx := Fixed64(0)
 	for _, tx := range block.Transactions {
-		totalTxFx += tx.Fee()
+		var err error
+		totalTxFx, err = AddFixed64(totalTxFx, tx.Fee())
+		if err != nil {
+			return 0, fmt.Errorf("total block fee: %w", err)
+		}
 	}
-	return Fixed64(math.Ceil(float64(totalTxFx+
-		b.chainParams.GetBlockReward(block.Height)) * 0.35))
+	totalReward, err := AddFixed64(totalTxFx,
+		b.chainParams.GetBlockReward(block.Height))
+	if err != nil {
+		return 0, fmt.Errorf("total block reward: %w", err)
+	}
+	return Fixed64(math.Ceil(float64(totalReward) * 0.35)), nil
 }
 
 func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase interfaces.Transaction, totalTxFee, dposReward Fixed64) error {
 	activeHeight := DefaultLedger.Arbitrators.GetDPoSV2ActiveHeight()
 	if activeHeight != math.MaxUint32 && blockHeight > activeHeight+1 {
-		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
+		totalReward, err := AddFixed64(totalTxFee,
+			b.chainParams.GetBlockReward(blockHeight))
+		if err != nil {
+			return fmt.Errorf("total coinbase reward: %w", err)
+		}
 		rewardCyberRepublic := Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
-		rewardMergeMiner := Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
+		rewardMergeMiner, err := SubtractFixed64(totalReward,
+			rewardCyberRepublic)
+		if err != nil {
+			return fmt.Errorf("merge-miner reward: %w", err)
+		}
+		rewardMergeMiner, err = SubtractFixed64(rewardMergeMiner,
+			rewardDposArbiter)
+		if err != nil {
+			return fmt.Errorf("merge-miner reward: %w", err)
+		}
 		if coinbase.Outputs()[0].Value != rewardCyberRepublic {
 			return errors.New("rewardCyberRepublic value not correct")
 		}
@@ -531,11 +615,27 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {
-		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
+		totalReward, err := AddFixed64(totalTxFee,
+			b.chainParams.GetBlockReward(blockHeight))
+		if err != nil {
+			return fmt.Errorf("total coinbase reward: %w", err)
+		}
 		rewardDPOSArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
-		if totalReward-rewardDPOSArbiter+DefaultLedger.Arbitrators.
-			GetFinalRoundChange() != coinbase.Outputs()[0].Value+
-			coinbase.Outputs()[1].Value {
+		expectedReward, err := SubtractFixed64(totalReward, rewardDPOSArbiter)
+		if err != nil {
+			return fmt.Errorf("expected coinbase reward: %w", err)
+		}
+		expectedReward, err = AddFixed64(expectedReward,
+			DefaultLedger.Arbitrators.GetFinalRoundChange())
+		if err != nil {
+			return fmt.Errorf("expected coinbase reward: %w", err)
+		}
+		actualReward, err := AddFixed64(coinbase.Outputs()[0].Value,
+			coinbase.Outputs()[1].Value)
+		if err != nil {
+			return fmt.Errorf("actual coinbase reward: %w", err)
+		}
+		if expectedReward != actualReward {
 
 			return errors.New("reward amount in coinbase not correct")
 		}
@@ -546,11 +646,19 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 	} else { // old version [0, H2)
 		var rewardInCoinbase = Fixed64(0)
 		for _, output := range coinbase.Outputs() {
-			rewardInCoinbase += output.Value
+			var err error
+			rewardInCoinbase, err = AddFixed64(rewardInCoinbase, output.Value)
+			if err != nil {
+				return fmt.Errorf("coinbase output reward: %w", err)
+			}
 		}
 
 		// Reward in coinbase must match inflation 4% per year
-		if rewardInCoinbase-totalTxFee != b.chainParams.GetBlockReward(blockHeight) {
+		rewardWithoutFees, err := SubtractFixed64(rewardInCoinbase, totalTxFee)
+		if err != nil {
+			return fmt.Errorf("coinbase reward without fees: %w", err)
+		}
+		if rewardWithoutFees != b.chainParams.GetBlockReward(blockHeight) {
 			return errors.New("Reward amount in coinbase not correct, " +
 				"height:" + strconv.FormatUint(uint64(blockHeight),
 				10) + "dposheight: " + strconv.FormatUint(uint64(config.

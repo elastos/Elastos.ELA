@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -80,7 +81,10 @@ func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 
 func (t *ActivateProducerTransaction) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
 	log.Debug("ActivateProducerTransaction checkTransactionFee begin")
-	fee := getTransactionFee(t, references)
+	fee, err := blockchain.GetTransactionFee(t, references)
+	if err != nil {
+		return err
+	}
 	if fee != 0 {
 		log.Debug("checkTransactionFee end fee != 0")
 

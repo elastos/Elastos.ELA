@@ -362,7 +362,13 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 			continue
 		}
 		if tx.IsCRCProposalTx() {
-			blockchain.RecordCRCProposalAmount(&proposalsUsedAmount, tx)
+			if err := blockchain.RecordCRCProposalAmount(&proposalsUsedAmount,
+				tx); err != nil {
+				log.Warn("[checkAndCleanAllTransactions] proposal amount failed,", err)
+				deleteCount++
+				mp.doRemoveTransaction(tx)
+				continue
+			}
 		}
 	}
 

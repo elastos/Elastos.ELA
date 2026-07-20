@@ -14,7 +14,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -125,7 +124,10 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	if !bytes.Equal(proposalState.ProposalOwner, withdrawPayload.OwnerKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the OwnerKey is not owner of proposal")), true
 	}
-	fee := getTransactionFee(t, t.references)
+	fee, err := blockchain.GetTransactionFee(t, t.references)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
 	if t.isSmallThanMinTransactionFee(fee) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("transaction fee not enough")), true
 	}
@@ -151,7 +153,11 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 		}
 
 		//Recipient count + fee must equal to availableWithdrawalAmount
-		if t.Outputs()[0].Value+fee != withdrawAmount {
+		recipientAmount, err := common.AddFixed64(t.Outputs()[0].Value, fee)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+		if recipientAmount != withdrawAmount {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("txn.Outputs()[0].Value + fee != withdrawAmout ")), true
 		}
 	} else if t.PayloadVersion() == payload.CRCProposalWithdrawVersion01 {
@@ -169,7 +175,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	}
 
 	signedBuf := new(bytes.Buffer)
-	err := withdrawPayload.SerializeUnsigned(signedBuf, t.PayloadVersion())
+	err = withdrawPayload.SerializeUnsigned(signedBuf, t.PayloadVersion())
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
@@ -190,17 +196,4 @@ func (t *CRCProposalWithdrawTransaction) isSmallThanMinTransactionFee(fee common
 		return true
 	}
 	return false
-}
-
-func getTransactionFee(tx interfaces.Transaction,
-	references map[*common2.Input]common2.Output) common.Fixed64 {
-	var outputValue common.Fixed64
-	var inputValue common.Fixed64
-	for _, output := range tx.Outputs() {
-		outputValue += output.Value
-	}
-	for _, output := range references {
-		inputValue += output.Value
-	}
-	return inputValue - outputValue
 }

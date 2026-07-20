@@ -21,6 +21,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -315,11 +316,17 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			}
 
 			if block.Height >= b.chainParams.DPoSV2StartHeight {
-				CalculateTxsFee(block.Block)
+				if e = CalculateTxsFee(block.Block); e != nil {
+					err = e
+					break
+				}
 			} else {
 				if block.Height >= bestHeight-uint32(
 					b.chainParams.DPoSConfiguration.NormalArbitratorsCount+len(b.chainParams.DPoSConfiguration.CRCArbiters)) {
-					CalculateTxsFee(block.Block)
+					if e = CalculateTxsFee(block.Block); e != nil {
+						err = e
+						break
+					}
 				}
 			}
 
@@ -628,7 +635,9 @@ func (b *BlockChain) CreateCRAssetsRectifyTransaction() (interfaces.Transaction,
 	return tx, nil
 }
 
-func CalculateTxsFee(block *Block) {
+// CalculateTxsFee reconstructs transaction fee fields using checked monetary
+// arithmetic.
+func CalculateTxsFee(block *Block) error {
 	for _, tx := range block.Transactions {
 		if tx.IsCoinBaseTx() {
 			continue
@@ -636,22 +645,23 @@ func CalculateTxsFee(block *Block) {
 		references, err := DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
 		if err != nil {
 			log.Error("get transaction Reference failed")
-			return
+			return err
 		}
-		var outputValue Fixed64
-		var inputValue Fixed64
-		for _, output := range tx.Outputs() {
-			outputValue += output.Value
+		fee, err := GetTxFee(tx, core.ELAAssetID, references)
+		if err != nil {
+			return err
 		}
-		for _, output := range references {
-			inputValue += output.Value
-		}
-		// set Fee and FeePerKB if check has passed
-		tx.SetFee(inputValue - outputValue)
 		buf := new(bytes.Buffer)
 		tx.Serialize(buf)
-		tx.SetFeePerKB(tx.Fee() * 1000 / Fixed64(len(buf.Bytes())))
+		feePerKBValue, err := MultiplyFixed64(fee, 1000)
+		if err != nil {
+			return err
+		}
+		// Set derived fee fields only after every checked calculation succeeds.
+		tx.SetFee(fee)
+		tx.SetFeePerKB(feePerKBValue / Fixed64(len(buf.Bytes())))
 	}
+	return nil
 }
 
 // GetState returns the DPOS state instance that stores producers and votes
@@ -679,7 +689,9 @@ func (b *BlockChain) GetBlock(height uint32) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	CalculateTxsFee(block.Block)
+	if err := CalculateTxsFee(block.Block); err != nil {
+		return nil, err
+	}
 	return block.Block, nil
 }
 

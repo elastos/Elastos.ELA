@@ -57,6 +57,11 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		log.Warn("[CheckTransactionOutput],", err)
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
 	}
+	if _, err := blockchain.GetTransactionFee(t.parameters.Transaction,
+		nil); err != nil {
+		log.Warn("[CheckTransactionOutputAmount],", err)
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
+	}
 
 	if err := checkAssetPrecision(t.parameters.Transaction); err != nil {
 		log.Warn("[CheckAssetPrecesion],", err)
@@ -105,6 +110,11 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
 	}
 	t.references = references
+	if _, err := blockchain.GetTransactionFee(t.parameters.Transaction,
+		references); err != nil {
+		log.Warn("[CheckTransactionAmount],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
+	}
 
 	if err := checkTransactionCrossChainUTXO(
 		t.parameters.Transaction,
@@ -757,18 +767,24 @@ func checkFrozenAddresses(txn interfaces.Transaction,
 func (t *DefaultChecker) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
 	log.Debug("DefaultChecker checkTransactionFee begin")
 	txn := t.parameters.Transaction
-	//blockHeight := t.parameters.BlockHeight
-	fee := getTransactionFee(txn, references)
+	fee, err := blockchain.GetTransactionFee(txn, references)
+	if err != nil {
+		return err
+	}
 	if t.isSmallThanMinTransactionFee(fee) {
 		log.Debug("DefaultChecker checkTransactionFee fee too small end")
 
 		return fmt.Errorf("transaction fee not enough")
 	}
-	// set Fee and FeePerKB if check has passed
-	txn.SetFee(fee)
 	buf := new(bytes.Buffer)
 	txn.Serialize(buf)
-	txn.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	feePerKBValue, err := common.MultiplyFixed64(fee, 1000)
+	if err != nil {
+		return fmt.Errorf("transaction fee per KB: %w", err)
+	}
+	// Set derived fee fields only after every checked calculation succeeds.
+	txn.SetFee(fee)
+	txn.SetFeePerKB(feePerKBValue / common.Fixed64(len(buf.Bytes())))
 	log.Debug("DefaultChecker checkTransactionFee end")
 
 	return nil

@@ -366,14 +366,26 @@ func (pow *Service) GenerateBlock(minerAddr string,
 			log.Warn("check transaction context failed, wrong transaction:", tx.Hash().String())
 			continue
 		}
+		nextTotalTxFee, err := common.AddFixed64(totalTxFee, tx.Fee())
+		if err != nil {
+			log.Warn("total transaction fee overflow:", err)
+			continue
+		}
 		msgBlock.Transactions = append(msgBlock.Transactions, tx)
-		totalTxFee += tx.Fee()
+		totalTxFee = nextTotalTxFee
 		if tx.IsCRCProposalTx() {
-			blockchain.RecordCRCProposalAmount(&proposalsUsedAmount, tx)
+			if err := blockchain.RecordCRCProposalAmount(&proposalsUsedAmount,
+				tx); err != nil {
+				return nil, err
+			}
 		}
 		txCount++
 	}
-	totalReward := totalTxFee + pow.chainParams.GetBlockReward(nextBlockHeight)
+	totalReward, err := common.AddFixed64(totalTxFee,
+		pow.chainParams.GetBlockReward(nextBlockHeight))
+	if err != nil {
+		return nil, fmt.Errorf("total block reward: %w", err)
+	}
 	pow.AssignCoinbaseTxRewards(msgBlock, totalReward)
 	txHash := make([]common.Uint256, 0, len(msgBlock.Transactions))
 	for _, tx := range msgBlock.Transactions {

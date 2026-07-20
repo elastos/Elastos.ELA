@@ -9,12 +9,58 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
 
-//the 64 bit fixed-point number, precise 10^-8
+// ErrFixed64Overflow indicates that a Fixed64 operation exceeded int64 bounds.
+var ErrFixed64Overflow = errors.New("fixed64 overflow")
+
+// Fixed64 is a 64-bit fixed-point number with 10^-8 precision.
 type Fixed64 int64
+
+// AddFixed64 adds two Fixed64 values and rejects signed 64-bit overflow.
+func AddFixed64(left, right Fixed64) (Fixed64, error) {
+	if right > 0 && left > Fixed64(math.MaxInt64)-right {
+		return 0, ErrFixed64Overflow
+	}
+	if right < 0 && left < Fixed64(math.MinInt64)-right {
+		return 0, ErrFixed64Overflow
+	}
+
+	return left + right, nil
+}
+
+// SubtractFixed64 subtracts two Fixed64 values and rejects signed 64-bit overflow.
+func SubtractFixed64(left, right Fixed64) (Fixed64, error) {
+	if right > 0 && left < Fixed64(math.MinInt64)+right {
+		return 0, ErrFixed64Overflow
+	}
+	if right < 0 && left > Fixed64(math.MaxInt64)+right {
+		return 0, ErrFixed64Overflow
+	}
+
+	return left - right, nil
+}
+
+// MultiplyFixed64 multiplies two Fixed64 values and rejects signed 64-bit overflow.
+func MultiplyFixed64(left, right Fixed64) (Fixed64, error) {
+	if left == 0 || right == 0 {
+		return 0, nil
+	}
+	if (left == Fixed64(math.MinInt64) && right == -1) ||
+		(right == Fixed64(math.MinInt64) && left == -1) {
+		return 0, ErrFixed64Overflow
+	}
+
+	product := left * right
+	if product/right != left {
+		return 0, ErrFixed64Overflow
+	}
+
+	return product, nil
+}
 
 func (f *Fixed64) Serialize(w io.Writer) error {
 	return WriteElement(w, f)

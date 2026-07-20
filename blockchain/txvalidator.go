@@ -659,20 +659,6 @@ func CheckAssetPrecision(txn interfaces.Transaction) error {
 	return nil
 }
 
-func (b *BlockChain) getTransactionFee(tx interfaces.Transaction,
-	references map[*common2.Input]common2.Output) common.Fixed64 {
-	var outputValue common.Fixed64
-	var inputValue common.Fixed64
-	for _, output := range tx.Outputs() {
-		outputValue += output.Value
-	}
-	for _, output := range references {
-		inputValue += output.Value
-	}
-
-	return inputValue - outputValue
-}
-
 func (b *BlockChain) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 	if fee < b.chainParams.MinTransactionFee {
 		return true
@@ -681,15 +667,22 @@ func (b *BlockChain) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 }
 
 func (b *BlockChain) CheckTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
-	fee := b.getTransactionFee(tx, references)
+	fee, err := GetTransactionFee(tx, references)
+	if err != nil {
+		return err
+	}
 	if b.isSmallThanMinTransactionFee(fee) {
 		return fmt.Errorf("transaction fee not enough")
 	}
-	// set Fee and FeePerKB if check has passed
-	tx.SetFee(fee)
 	buf := new(bytes.Buffer)
 	tx.Serialize(buf)
-	tx.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	feePerKBValue, err := common.MultiplyFixed64(fee, 1000)
+	if err != nil {
+		return fmt.Errorf("transaction fee per KB: %w", err)
+	}
+	// Set derived fee fields only after every checked calculation succeeds.
+	tx.SetFee(fee)
+	tx.SetFeePerKB(feePerKBValue / common.Fixed64(len(buf.Bytes())))
 	return nil
 }
 
